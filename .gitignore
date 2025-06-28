@@ -1,0 +1,42 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+.venv/
+
+# Archivos de entorno y configuración sensibles
+.env
+.env.*
+
+# Archivos de bases de datos locales
+*.db
+*.sqlite3
+
+# __pycache__ y archivos compilados de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Archivos de logs
+*.log
+
+# Alembic
+alembic/versions/
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Archivos de pruebas (pytest, coverage, etc.)
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Archivos de dependencias generados automáticamente
+pip-log.txt
