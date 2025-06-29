@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     
     # App
     PROJECT_NAME: str = "Task Manager API"
+    PROJECT_DESCRIPTION: str = "API for task management with priorities, tags, and time"
     DEBUG: bool = True
     VERSION:str = "1.0.0"
     class Config:

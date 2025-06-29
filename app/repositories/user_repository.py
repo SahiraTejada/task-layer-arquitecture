@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
 from app.repositories.base import BaseRepository
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
