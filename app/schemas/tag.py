@@ -4,15 +4,23 @@ from app.schemas.common import PaginatedResponse
 from app.utils.enum import TagColorEnum
 
 class TagBase(BaseModel):
-    name: str = Field(..., description="Tag name")
+    name: str = Field(..., max_length=50, min_length=1,  description="Tag name (max 50 characters)")
     color: TagColorEnum = Field(..., description="Color of the tag")
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "name": "Urgent",
+                "color": "red"
+            }
+        }
+        
 class TagCreate(TagBase):
     pass
 
 class TagUpdate(BaseModel):
     id: int = Field(..., description="Tag ID")
-    name: Optional[str] = Field(None, description="Updated name")
+    name: Optional[str] = Field(None,max_length=50, min_length=1, description="Updated name")
     color: Optional[TagColorEnum] = Field(None, description="Updated color")
 
 class TagRequest(BaseModel):
@@ -20,6 +28,8 @@ class TagRequest(BaseModel):
 
 class TagResponse(TagBase):
     id: int = Field(..., description="Tag ID")
+    class Config:
+        orm_mode = True
     
 class TagListResponse(PaginatedResponse[TagResponse]):
     pass

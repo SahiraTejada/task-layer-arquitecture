@@ -9,10 +9,10 @@ class Task(BaseModel):
     __tablename__ = "tasks"
     
     name = Column(String(100), index=True, nullable=False)
-    description = Column(String(255), nullable=False)
-    due_date = Column(DateTime, nullable=False)
-    priority = Column(SQLEnum(PriorityEnum,native_enum=False), nullable=False, default=PriorityEnum.MEDIUM)
-    status = Column(SQLEnum(TaskStatus,native_enum=False), default=TaskStatus.PENDING)
+    description = Column(String(255), nullable=True)
+    due_date = Column(DateTime, nullable=True)
+    priority = Column(SQLEnum(PriorityEnum,native_enum=False), nullable=True, default=PriorityEnum.MEDIUM)
+    status = Column(SQLEnum(TaskStatus,native_enum=False), nullable=False, default=TaskStatus.PENDING)
 
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="tasks")
