@@ -2,17 +2,17 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "sqlite:///./task_manager.db"
+    DATABASE_URL: str = "sqlite:///./task_manager.db"
     
     # Security
-    secret_key: str = "your-secret-key-here"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
+    SECRET_KEY: str = "your-secret-key-here"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # App
-    app_name: str = "Task Manager API"
-    debug: bool = True
-    version:str = "1.0.0"
+    PROJECT_NAME: str = "Task Manager API"
+    DEBUG: bool = True
+    VERSION:str = "1.0.0"
     class Config:
         env_file = ".env"
 

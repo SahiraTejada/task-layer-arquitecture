@@ -5,8 +5,13 @@ class PriorityEnum(enum.Enum):
     MEDIUM = "medium"
     HIGH = "high"
 
-import enum
 
+class TaskStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    
 class TagColorEnum(enum.Enum):
     BLUE = "#007bff"
     RED = "#dc3545"

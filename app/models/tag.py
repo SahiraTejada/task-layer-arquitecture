@@ -1,5 +1,4 @@
-from enum import Enum
-from sqlalchemy import Column, Integer, String, Table, ForeignKey
+from sqlalchemy import Column, Integer, String, Table, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
 from app.config.database import Base
@@ -19,7 +18,7 @@ class Tag(BaseModel):
     __tablename__ = "tags"
     
     name = Column(String, unique=True, index=True, nullable=False)
-    color = Column(Enum(TagColorEnum), nullable=False, default=TagColorEnum.BLUE)
+    color = Column(SQLEnum(TagColorEnum,native_enum=False), nullable=False, default=TagColorEnum.BLUE)
     
     # Many-to-many relationship with tasks
     tasks = relationship("Task", secondary=task_tag_association, back_populates="tags")
