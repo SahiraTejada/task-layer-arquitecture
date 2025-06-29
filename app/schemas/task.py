@@ -4,7 +4,7 @@ from app.schemas.common import PaginatedResponse
 
 class TaskBase(BaseModel):
     name: str = Field(..., description="Task name")
-    color: TaskColorEnum = Field(..., description="Color of the Task")
+    description: str = Field(..., description="Color of the Task")
 
 class TaskCreate(TaskBase):
     pass

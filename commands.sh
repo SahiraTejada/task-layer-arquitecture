@@ -17,6 +17,8 @@ touch .env
 echo "🧬 Initializing Alembic..."
 alembic init alembic
 
+echo "📌 Making initial commit for Alembic setup..."
+alembic revision --autogenerate -m "update database"
 
 echo "📝 Updating requirements.txt with current dependecies..."
 pip freeze > requirements.txt
