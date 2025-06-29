@@ -1,47 +1,77 @@
 from typing import Generic, TypeVar, Type, Optional, List, Dict, Any, Tuple, Union
-from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from app.models import BaseModel as GeneralBaseModel
+# Import generic programming tools and type hints
 
-# Type variables for generic usage
-ModelType = TypeVar("ModelType", bound=GeneralBaseModel)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+from datetime import datetime, timezone
+# Import datetime and timezone for timestamps
+
+from sqlalchemy.orm import Session
+# Import SQLAlchemy Session for database operations
+
+from pydantic import BaseModel
+# Import Pydantic BaseModel for schema validation
+
+from app.models import BaseModel as GeneralBaseModel
+# Import your SQLAlchemy base model (renamed to avoid conflict with Pydantic BaseModel)
+
+# Define type variables to be used with generics
+ModelType = TypeVar("ModelType", bound=GeneralBaseModel)       # SQLAlchemy model type
+CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel) # Pydantic schema for creation
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel) # Pydantic schema for update
+
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
+    # Generic repository class that works with any model and schemas
+    
     def __init__(self, model: Type[ModelType], db: Session):
         """
-        Initializes the repository with a model and a database session.
+        Initialize repository with the given SQLAlchemy model and DB session.
         """
         self.model = model
         self.db = db
 
     def get(self, id: int) -> Optional[ModelType]:
         """
-        Get a single record by ID (excluding soft-deleted if applicable).
+        Get one record by its primary key id.
+        Excludes soft-deleted records if the model has 'deleted_at' column.
         """
+        # Start a query on the model's table, filtering by the given id
         query = self.db.query(self.model).filter(self.model.id == id)
+        # hasattr is a built-in Python function that checks if an object has a specific attribute.
+        # it returns True if the object has that attribute and False if it does not..
+        # Further filter to include only records that are not soft deleted (deleted_at is None)
         if hasattr(self.model, "deleted_at"):
             query = query.filter(self.model.deleted_at.is_(None))
+            
+        # Execute the query and return the first matching record or None if not found
         return query.first()
 
     def get_multi(self, skip: int = 0, limit: int = 100, **filters) -> List[ModelType]:
         """
-        Get multiple records with optional filters and pagination.
+        Get multiple records with optional filters, skipping and limiting results.
         Excludes soft-deleted records.
         """
         query = self.db.query(self.model)
         if hasattr(self.model, "deleted_at"):
             query = query.filter(self.model.deleted_at.is_(None))
+        # Apply dynamic filters passed in as a dictionary called 'filters'
         for field, value in filters.items():
+            # Check that the model has this field AND that the filter value is not None
             if hasattr(self.model, field) and value is not None:
+                # Add a filter to the query where model.field == value
+                # getattr(self.model, field) dynamically gets the column from the model
+
+                """getattr is a built-in Python function used to dynamically get the value of an attribute
+                from an object using its name as a string.
+                """
+                # Dynamically get the field/column from the model using getattr
+                # For example: if field = "username", this becomes self.model.username == value
                 query = query.filter(getattr(self.model, field) == value)
+        # Apply pagination: skip a number of records and limit the number of results returned        
         return query.offset(skip).limit(limit).all()
 
     def get_all(self) -> List[ModelType]:
         """
-        Get all records from the table (excluding soft-deleted if applicable).
+        Get all records (excluding soft-deleted if applicable).
         """
         query = self.db.query(self.model)
         if hasattr(self.model, "deleted_at"):
@@ -50,7 +80,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def get_by_field(self, field: str, value: Any) -> Optional[ModelType]:
         """
-        Get a single record by any field name and value.
+        Get one record filtered by a specific field and value.
         """
         if not hasattr(self.model, field):
             return None
@@ -61,7 +91,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def get_multiple_by_field(self, field: str, value: Any) -> List[ModelType]:
         """
-        Get multiple records that match a specific field and value.
+        Get multiple records filtered by a specific field and value.
         """
         if not hasattr(self.model, field):
             return []
@@ -72,7 +102,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def get_multiple_by_ids(self, ids: List[int]) -> List[ModelType]:
         """
-        Get multiple records that match a list of IDs.
+        Get multiple records by a list of ids.
         """
         query = self.db.query(self.model).filter(self.model.id.in_(ids))
         if hasattr(self.model, "deleted_at"):
@@ -81,16 +111,17 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def create(self, obj_in: Union[CreateSchemaType, Dict[str, Any]]) -> ModelType:
         """
-        Create a new record from a Pydantic model or dictionary.
+        Create a new record from a Pydantic schema or dict.
         """
         if isinstance(obj_in, dict):
             obj_data = obj_in
         else:
+            # Extract data ignoring unset fields
             obj_data = obj_in.model_dump(exclude_unset=True)
-        db_obj = self.model(**obj_data)
-        self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
+        db_obj = self.model(**obj_data)  # Instantiate SQLAlchemy model
+        self.db.add(db_obj)              # Add to session
+        self.db.commit()                 # Commit transaction
+        self.db.refresh(db_obj)          # Refresh instance with DB data
         return db_obj
 
     def create_multi(self, objs_in: List[Union[CreateSchemaType, Dict[str, Any]]]) -> List[ModelType]:
@@ -113,12 +144,13 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def update(self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
         """
-        Update an existing record using a Pydantic model or dictionary.
+        Update an existing record with data from Pydantic schema or dict.
         """
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
+        # Update fields on the DB object
         for field, value in update_data.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
@@ -129,7 +161,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def delete(self, id: int) -> Optional[ModelType]:
         """
-        Permanently delete a record by ID.
+        Permanently delete a record by id.
         """
         obj = self.db.query(self.model).filter(self.model.id == id).first()
         if obj:
@@ -139,7 +171,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def soft_delete(self, id: int) -> Optional[ModelType]:
         """
-        Soft-delete a record by setting its `deleted_at` field.
+        Soft delete by setting the 'deleted_at' timestamp.
         """
         obj = self.db.query(self.model).filter(self.model.id == id).first()
         if obj and hasattr(obj, "deleted_at"):
@@ -152,7 +184,8 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def delete_multi(self, ids: List[int]) -> int:
         """
-        Permanently delete multiple records by a list of IDs.
+        Permanently delete multiple records by ids.
+        Returns count of deleted rows.
         """
         deleted_count = self.db.query(self.model).filter(self.model.id.in_(ids)).delete(synchronize_session=False)
         self.db.commit()
@@ -160,7 +193,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def exists(self, id: int) -> bool:
         """
-        Check if a record exists by ID.
+        Check if a record exists by id (excluding soft deleted).
         """
         query = self.db.query(self.model).filter(self.model.id == id)
         if hasattr(self.model, "deleted_at"):
@@ -169,7 +202,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def exists_by_field(self, field: str, value: Any) -> bool:
         """
-        Check if a record exists for a specific field and value.
+        Check if a record exists for a given field and value (excluding soft deleted).
         """
         if not hasattr(self.model, field):
             return False
@@ -180,7 +213,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def count(self, **filters) -> int:
         """
-        Count total records with optional filters (excluding soft-deleted).
+        Count total records matching optional filters (excluding soft deleted).
         """
         query = self.db.query(self.model)
         if hasattr(self.model, "deleted_at"):
@@ -192,7 +225,9 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def bulk_update(self, updates: List[Dict[str, Any]]) -> int:
         """
-        Perform bulk updates. Each dict must include an 'id' key.
+        Bulk update multiple records.
+        Each dict must include 'id' key and fields to update.
+        Returns count of updated rows.
         """
         if not updates:
             return 0
@@ -209,7 +244,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def get_with_pagination(self, skip: int = 0, limit: int = 10, **filters) -> Tuple[List[ModelType], int]:
         """
         Get records with pagination and optional filters.
-        Returns a tuple: (items list, total count).
+        Returns a tuple: (list of items, total count).
         """
         query = self.db.query(self.model)
         if hasattr(self.model, "deleted_at"):
