@@ -21,5 +21,8 @@ class Tag(BaseModel):
     name = Column(String(50), unique=True, index=True, nullable=False)
     color = Column(SQLEnum(TagColorEnum,native_enum=False), nullable=False, default=TagColorEnum.BLUE)
     
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user = relationship("User", back_populates="tags")
+    
     # Many-to-many relationship with tasks
     tasks = relationship("Task", secondary=task_tag_association, back_populates="tags")

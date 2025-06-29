@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean
+from sqlalchemy import Column, String, Boolean
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -10,9 +10,16 @@ class User(BaseModel):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
 
-    # Relationship with tasks
+    # 🔹 Relación con tareas
     tasks = relationship(
         "Task",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    # 🔹 Relación con tags (nuevo, para conectar con modelo Tag)
+    tags = relationship(
+        "Tag",
         back_populates="user",
         cascade="all, delete-orphan"
     )
