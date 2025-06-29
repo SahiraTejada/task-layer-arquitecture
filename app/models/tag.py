@@ -9,15 +9,16 @@ from .base import BaseModel
 task_tag_association = Table(
     "task_tag_association",
     Base.metadata,
-    Column("task_id", Integer, ForeignKey("tasks.id"), primary_key=True),
-    Column("tag_id", Integer, ForeignKey("tags.id"), primary_key=True)
+    Column("task_id", Integer, ForeignKey("tasks.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
 )
 
 
 class Tag(BaseModel):
     __tablename__ = "tags"
     
-    name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String(50), unique=True, index=True, nullable=False)
     color = Column(SQLEnum(TagColorEnum,native_enum=False), nullable=False, default=TagColorEnum.BLUE)
     
     # Many-to-many relationship with tasks
