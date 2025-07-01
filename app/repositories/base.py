@@ -54,6 +54,8 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if hasattr(self.model, "deleted_at"):
             query = query.filter(self.model.deleted_at.is_(None))
         # Apply dynamic filters passed in as a dictionary called 'filters'
+        # Loop through each key-value pair in the filters dictionary
+        # 'field' is the name of the model field (as a string), and 'value' is the value to filter by
         for field, value in filters.items():
             # Check that the model has this field AND that the filter value is not None
             if hasattr(self.model, field) and value is not None:
@@ -111,18 +113,42 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     def create(self, obj_in: Union[CreateSchemaType, Dict[str, Any]]) -> ModelType:
         """
-        Create a new record from a Pydantic schema or dict.
+        Create a new record from a Pydantic schema or dictionary.
+            
+        Parameters:
+        - obj_in: can be either:
+            - a Pydantic schema instance (e.g., UserCreate), which provides validated and structured data
+            - OR a plain dictionary (e.g., {"username": "sahira"}), useful for internal use or testing
+        This makes the function flexible and able to handle both input types.
+        
+        Returns:
+        - A new instance of the SQLAlchemy model, saved in the database
         """
+
+        # Check if the input is a dictionary
         if isinstance(obj_in, dict):
+            # If yes, use it directly as the data to insert
             obj_data = obj_in
         else:
-            # Extract data ignoring unset fields
+            # If it's a Pydantic model, convert it to a dict
+            # 'exclude_unset=True' ignores fields that were not explicitly set
             obj_data = obj_in.model_dump(exclude_unset=True)
-        db_obj = self.model(**obj_data)  # Instantiate SQLAlchemy model
-        self.db.add(db_obj)              # Add to session
-        self.db.commit()                 # Commit transaction
-        self.db.refresh(db_obj)          # Refresh instance with DB data
+
+        # Create a new instance of the SQLAlchemy model with the provided data
+        db_obj = self.model(**obj_data)
+
+        # Add the new object to the current database session
+        self.db.add(db_obj)
+
+        # Commit the transaction to save the object to the database
+        self.db.commit()
+
+        # Refresh the object instance with data from the database (e.g., to get auto-generated fields like 'id')
+        self.db.refresh(db_obj)
+
+        # Return the created database object
         return db_obj
+
 
     def create_multi(self, objs_in: List[Union[CreateSchemaType, Dict[str, Any]]]) -> List[ModelType]:
         """
