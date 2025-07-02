@@ -153,37 +153,90 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def create_multi(self, objs_in: List[Union[CreateSchemaType, Dict[str, Any]]]) -> List[ModelType]:
         """
         Create multiple records at once.
+        
+        Parameters:
+        - objs_in: A list of inputs, where each item can be either:
+            - A Pydantic schema instance (e.g., UserCreate)
+            - Or a plain dictionary with field-value pairs
+        Returns:
+        - A list of newly created SQLAlchemy model instances
         """
+
+        # Initialize an empty list to hold the model instances to be created
         db_objs = []
+
+        # Loop through each object in the input list
         for obj_in in objs_in:
+
+            # If the input is a dictionary, use it directly
             if isinstance(obj_in, dict):
                 obj_data = obj_in
             else:
+                # If it's a Pydantic model, convert it to a dictionary,
+                # excluding fields that weren't explicitly set
                 obj_data = obj_in.model_dump(exclude_unset=True)
+
+            # Create a new instance of the SQLAlchemy model using the data
             db_obj = self.model(**obj_data)
+
+            # Add the instance to the list of objects to insert
             db_objs.append(db_obj)
+
+        # Add all model instances to the session at once (bulk insert)
         self.db.add_all(db_objs)
+
+        # Commit the transaction to save all records in the database
         self.db.commit()
+
+        # Refresh each instance to get updated data from the database
+        # (e.g., auto-generated fields like ID, timestamps)
         for db_obj in db_objs:
             self.db.refresh(db_obj)
+
+        # Return the list of created model instances
         return db_objs
+
 
     def update(self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
         """
-        Update an existing record with data from Pydantic schema or dict.
+        Update an existing record with data from a Pydantic schema or a dictionary.
+
+        Parameters:
+        - db_obj: the existing SQLAlchemy model instance to update.
+        - obj_in: data to update with, either as a Pydantic schema or a plain dictionary.
+
+        Returns:
+        - The updated SQLAlchemy model instance.
         """
+
+        # Check if the input is a dictionary
         if isinstance(obj_in, dict):
+            # If yes, use it directly as the update data
             update_data = obj_in
         else:
+            # If it's a Pydantic model, convert it to a dictionary
+            # Only include fields that were actually set (exclude unset fields)
             update_data = obj_in.model_dump(exclude_unset=True)
-        # Update fields on the DB object
+
+        # Loop through the update data to apply each field to the database object
         for field, value in update_data.items():
+            # Only update if the field exists on the model instance
             if hasattr(db_obj, field):
+                # Set the new value for the field
                 setattr(db_obj, field, value)
+
+        # Add the modified object back to the session
         self.db.add(db_obj)
+
+        # Commit the changes to the database
         self.db.commit()
+
+        # Refresh the object to reflect any DB-generated values (e.g., updated timestamps)
         self.db.refresh(db_obj)
+
+        # Return the updated object
         return db_obj
+
 
     def delete(self, id: int) -> Optional[ModelType]:
         """
@@ -252,20 +305,40 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def bulk_update(self, updates: List[Dict[str, Any]]) -> int:
         """
         Bulk update multiple records.
-        Each dict must include 'id' key and fields to update.
-        Returns count of updated rows.
+        Each dictionary in the list must include an 'id' key and the fields to update.
+        Returns:
+            The number of rows successfully updated.
         """
+
+        # If the list of updates is empty, return 0 (nothing to update)
         if not updates:
             return 0
+
+        # Counter to track how many rows were updated
         updated_count = 0
+
+        # Loop through each dictionary in the updates list
         for update_data in updates:
+            # If 'id' is not present in the dictionary, skip this update
             if 'id' not in update_data:
                 continue
+
+            # Remove and store the 'id' value from the dictionary
             obj_id = update_data.pop('id')
+
+            # Run an update query on the model where the id matches
+            # The remaining keys in update_data will be used as updated fields
             result = self.db.query(self.model).filter(self.model.id == obj_id).update(update_data)
+
+            # 'result' returns the number of rows updated (0 or 1), so we add it to the counter
             updated_count += result
+
+        # Commit all the changes to the database
         self.db.commit()
+
+        # Return the total number of rows updated
         return updated_count
+
 
     def get_with_pagination(self, skip: int = 0, limit: int = 10, **filters) -> Tuple[List[ModelType], int]:
         """
