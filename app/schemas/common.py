@@ -12,11 +12,14 @@ class PaginationRequest(PaginationBase):
 
 
 class PaginatedResponse(GenericModel, Generic[T]):
+    """Generic paginated response schema."""
     items: List[T]
     page: int = Field(..., description="Current page number")
     limit: int = Field(..., description="Limit per page")
     total: int = Field(..., description="Total number of items")
-
+    total_pages: int = Field(..., description="Total number of pages")
+    has_next: bool = Field(..., description="Whether there are more pages")
+    has_previous: bool = Field(..., description="Whether there are previous pages")
 
 
 

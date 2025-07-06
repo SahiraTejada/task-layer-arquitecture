@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from app.schemas.common import PaginatedResponse
 from app.schemas.task import TaskResponse
 
 class UserBase(BaseModel):
@@ -52,7 +54,7 @@ class UserResponse(BaseModel):
         orm_mode = True
         
         
-class UserWithTaskResponse(UserResponse):
+class UserWithTasksResponse(UserResponse):
     tasks: List[TaskResponse] = Field(default=[], description="User tasks")
 
 
@@ -70,3 +72,25 @@ class UserChangePassword(BaseModel):
         if len(v) < 8:
             raise ValueError('New password must be at least 8 characters long')
         return v    
+
+class UserFilters(BaseModel):
+    is_active: Optional[bool] = Field(None, description="Filter by active status")
+    username: Optional[str] = Field(None, description="Filter by username")
+    email: Optional[str] = Field(None, description="Filter by email")
+    created_after: Optional[datetime] = Field(None, description="Filter by creation date after")
+    created_before: Optional[datetime] = Field(None, description="Filter by creation date before")
+
+class UserBulkUpdate(BaseModel):
+    """Schema for bulk user updates."""
+    user_ids: List[int] = Field(..., min_items=1, description="List of user IDs to update")
+    update_data: UserUpdate = Field(..., description="Data to update for all users")
+
+
+class UserPaginatedResponse(PaginatedResponse[UserResponse]):
+    """Paginated response schema for users."""
+    pass   
+
+class UserSearch(BaseModel):
+    query: str = Field(..., min_length=1, description="Search query")
+    skip: int = Field(0, ge=0, description="Number of records to skip")
+    limit: int = Field(10, ge=1, le=100, description="Maximum number of records to return")
