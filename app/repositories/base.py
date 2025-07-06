@@ -11,6 +11,7 @@ from pydantic import BaseModel
 # Import Pydantic BaseModel for schema validation
 
 from app.models import BaseModel as GeneralBaseModel
+from app.schemas.common import PaginatedResponse, PaginationRequest
 # Import your SQLAlchemy base model (renamed to avoid conflict with Pydantic BaseModel)
 
 # Define type variables to be used with generics
@@ -354,3 +355,32 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         total = query.count()
         items = query.offset(skip).limit(limit).all()
         return items, total
+    
+    
+    def get_paginated_response(self, pagination: PaginationRequest, **filters) -> PaginatedResponse:
+        """
+        Get paginated response with enhanced pagination metadata.
+        
+        Args:
+            pagination: Pagination request parameters
+            **filters: Additional filter parameters
+            
+        Returns:
+            PaginatedResponse with items and pagination metadata
+        """
+        skip = (pagination.page - 1) * pagination.limit
+        items, total = self.get_with_pagination(skip=skip, limit=pagination.limit, **filters)
+        
+        total_pages = (total + pagination.limit - 1) // pagination.limit
+        has_next = pagination.page < total_pages
+        has_previous = pagination.page > 1
+        
+        return PaginatedResponse(
+            items=items,
+            page=pagination.page,
+            limit=pagination.limit,
+            total=total,
+            total_pages=total_pages,
+            has_next=has_next,
+            has_previous=has_previous
+        )

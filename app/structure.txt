@@ -1,0 +1,69 @@
+./
+|-- __init__.py
+|-- __pycache__/
+|   |-- __init__.cpython-312.pyc
+|   |-- main.cpython-312.pyc
+|-- api/
+|   |-- __deps.py
+|   |-- __init__.py
+|   |-- __pycache__/
+|   |   |-- __init__.cpython-312.pyc
+|   |-- v1/
+|   |   |-- __init__.py
+|   |   |-- __pycache__/
+|   |   |   |-- __init__.cpython-312.pyc
+|   |   |   |-- router.cpython-312.pyc
+|   |   |-- endpoints/
+|   |   |   |-- __init__.py
+|   |   |   |-- auth.py
+|   |   |   |-- tags.py
+|   |   |   |-- tasks.py
+|   |   |-- router.py
+|-- config/
+|   |-- __init__.py
+|   |-- __pycache__/
+|   |   |-- __init__.cpython-312.pyc
+|   |   |-- database.cpython-312.pyc
+|   |   |-- settings.cpython-312.pyc
+|   |-- database.py
+|   |-- settings.py
+|-- core/
+|   |-- security.py
+|   |-- services/
+|   |   |-- __init__.py
+|   |   |-- tags_service.py
+|   |   |-- task_service.py
+|   |   |-- user_service.py
+|-- folder.py
+|-- main.py
+|-- models/
+|   |-- __init__.py
+|   |-- __pycache__/
+|   |   |-- __init__.cpython-312.pyc
+|   |   |-- base.cpython-312.pyc
+|   |   |-- tag.cpython-312.pyc
+|   |   |-- task.cpython-312.pyc
+|   |   |-- user.cpython-312.pyc
+|   |-- base.py
+|   |-- tag.py
+|   |-- task.py
+|   |-- user.py
+|-- repositories/
+|   |-- __init__.py
+|   |-- base.py
+|   |-- tag_repository.py
+|   |-- task_repository.py
+|   |-- user_repository.py
+|-- schemas/
+|   |-- __init__.py
+|   |-- common.py
+|   |-- tag.py
+|   |-- task.py
+|   |-- user.py
+|-- utils/
+|   |-- __init__.py
+|   |-- __pycache__/
+|   |   |-- __init__.cpython-312.pyc
+|   |   |-- enum.cpython-312.pyc
+|   |-- enum.py
+|   |-- exceptions.py
