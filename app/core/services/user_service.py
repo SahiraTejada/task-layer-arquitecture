@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import logging
@@ -13,11 +13,11 @@ from app.schemas.user import (
     UserWithTasksResponse,
     UserLogin,
     UserChangePassword,
-    UserSearch,
     UserPaginatedResponse,
     UserFilters,
     UserBulkUpdate,
 )
+
 from app.utils.exceptions import (
     InvalidCredentialsError, 
     UserAlreadyExistsError, 
