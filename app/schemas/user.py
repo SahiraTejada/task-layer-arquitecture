@@ -51,7 +51,7 @@ class UserResponse(BaseModel):
     is_active: bool = Field(..., description="Is user active")
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
         
 class UserWithTasksResponse(UserResponse):

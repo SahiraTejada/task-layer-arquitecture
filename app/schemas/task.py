@@ -43,7 +43,7 @@ class TaskResponse(TaskBase):
     tags: List[TagResponse] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class TaskListResponse(PaginatedResponse[TaskResponse]):
     pass

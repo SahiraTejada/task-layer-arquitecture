@@ -29,7 +29,7 @@ class TagRequest(BaseModel):
 class TagResponse(TagBase):
     id: int = Field(..., description="Tag ID")
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class TagListResponse(PaginatedResponse[TagResponse]):
     pass
