@@ -96,8 +96,9 @@ class AuthService:
         return user_response
 
     def change_password(
-        self, user_id: int, user_data: UserChangePassword
+        self,  user_data: UserChangePassword
     ) -> UserResponse:
+        user_id= user_data.id
         old_password = user_data.old_password
         new_password = user_data.new_password
 

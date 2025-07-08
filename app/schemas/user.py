@@ -64,6 +64,7 @@ class UserLogin(BaseModel):
     
     
 class UserChangePassword(BaseModel):
+    id: int = Field(..., description="User ID")
     old_password: str = Field(..., description="Current password")
     new_password: str = Field(..., min_length=8, description="New password")
     

@@ -78,13 +78,12 @@ async def authenticate_user(
 
 
 @auth_router.put(
-    "/{user_id}/password",
+    "/change-password",
     response_model=UserResponse,
     summary="Change user password",
     description="Change a user's password after verifying the current password.",
 )
 async def change_password(
-    user_id: int,
     password_data: UserChangePassword,
     auth_service: AuthService = Depends(get_auth_service),
 ):
@@ -96,7 +95,7 @@ async def change_password(
     - **new_password**: New password
     """
     try:
-        return auth_service.change_password(user_id, password_data)
+        return auth_service.change_password(password_data)
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except InvalidCredentialsError as e:
