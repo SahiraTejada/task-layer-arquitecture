@@ -25,7 +25,7 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 
 @auth_router.post(
-    "/",
+    "/register",
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new user",
@@ -54,7 +54,7 @@ async def create_user(
 
 
 @auth_router.post(
-    "/authenticate",
+    "/login",
     response_model=UserResponse,
     summary="Authenticate user",
     description="Authenticate a user with email and password.",
