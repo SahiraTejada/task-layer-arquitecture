@@ -18,7 +18,7 @@ from app.utils.exceptions import (
     DatabaseError,
 )
 
-router = APIRouter(prefix="/users", tags=["users"])
+users_router = APIRouter(prefix="/users", tags=["users"])
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
@@ -26,7 +26,7 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(db)
 
 
-@router.get(
+@users_router.get(
     "/{user_id}",
     response_model=UserResponse,
     summary="Get user by ID",
@@ -50,7 +50,7 @@ async def get_user(
         )
 
 
-@router.get(
+@users_router.get(
     "/email/{email}",
     response_model=UserResponse,
     summary="Get user by email",
@@ -74,7 +74,7 @@ async def get_user_by_email(
         )
 
 
-@router.get(
+@users_router.get(
     "/username/{username}",
     response_model=UserResponse,
     summary="Get user by username",
@@ -98,7 +98,7 @@ async def get_user_by_username(
         )
 
 
-@router.get(
+@users_router.get(
     "/{user_id}/tasks",
     response_model=UserWithTasksResponse,
     summary="Get user with tasks",
@@ -122,7 +122,7 @@ async def get_user_with_tasks(
         )
 
 
-@router.get(
+@users_router.get(
     "/",
     response_model=List[UserResponse],
     summary="Get all users",
@@ -148,7 +148,7 @@ async def get_all_users(
         )
 
 
-@router.get(
+@users_router.get(
     "/paginated/list",
     response_model=UserPaginatedResponse,
     summary="Get users with advanced pagination",
@@ -199,7 +199,7 @@ async def get_users_paginated(
         )
 
 
-@router.put(
+@users_router.put(
     "/{user_id}",
     response_model=UserResponse,
     summary="Update user",
@@ -235,7 +235,7 @@ async def update_user(
         )
 
 
-@router.delete(
+@users_router.delete(
     "/{user_id}",
     response_model=UserResponse,
     summary="Delete user",
@@ -265,7 +265,7 @@ async def delete_user(
 
 
 
-@router.put(
+@users_router.put(
     "/bulk-update",
     response_model=dict,
     summary="Bulk update users",
@@ -294,7 +294,7 @@ async def bulk_update_users(
         )
 
 
-@router.get(
+@users_router.get(
     "/count/total",
     response_model=dict,
     summary="Get user count",
@@ -332,7 +332,7 @@ async def get_user_count(
         )
 
 
-@router.get(
+@users_router.get(
     "/{user_id}/exists",
     response_model=dict,
     summary="Check if user exists",
@@ -351,7 +351,7 @@ async def check_user_exists(
     return {"exists": exists}
 
 
-@router.get(
+@users_router.get(
     "/check-email/{email}",
     response_model=dict,
     summary="Check if email exists",
@@ -372,7 +372,7 @@ async def check_email_exists(
     return {"exists": exists}
 
 
-@router.get(
+@users_router.get(
     "/check-username/{username}",
     response_model=dict,
     summary="Check if username exists",
