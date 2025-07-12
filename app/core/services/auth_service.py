@@ -6,6 +6,7 @@ import logging
 from app.core.security import get_password_hash, verify_password
 from app.core.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
+from app.schemas.common import SuccessResponseSchema
 from app.schemas.user import (
     UserCreate,
     UserResponse,
@@ -97,7 +98,7 @@ class AuthService:
 
     def change_password(
         self,  user_data: UserChangePassword
-    ) -> UserResponse:
+    ) -> SuccessResponseSchema:
         user_id= user_data.id
         old_password = user_data.old_password
         new_password = user_data.new_password
@@ -122,9 +123,11 @@ class AuthService:
         }
 
         try:
-            updated_user = self.user_repository.update(user, update_data)
+            self.user_repository.update(user, update_data)
             logger.info(f"Password changed successfully for user {user_id}")
-            return UserResponse.model_validate(updated_user)
+            return SuccessResponseSchema(
+                message="Password changed successfully",
+            )
         except Exception as e:
             logger.error(f"Error changing password for user {user_id}: {str(e)}")
             raise DatabaseError(f"Failed to change password: {str(e)}")

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.config.database import get_db
 from app.core.services.auth_service import AuthService
+from app.schemas.common import SuccessResponseSchema
 from app.schemas.user import (
     UserCreate,
     UserResponse,
@@ -79,7 +80,7 @@ async def authenticate_user(
 
 @auth_router.put(
     "/change-password",
-    response_model=UserResponse,
+    response_model=SuccessResponseSchema,
     summary="Change user password",
     description="Change a user's password after verifying the current password.",
 )
