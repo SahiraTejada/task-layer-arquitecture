@@ -6,16 +6,12 @@ import logging
 
 from app.utils.exceptions import (
     AppValidationError,
-    BaseAppException,
     ServiceError,
     NotFoundError,
     DatabaseError,
     AuthenticationError,
     AuthorizationError,
-    InvalidCredentialsError,
     UserAlreadyExistsError,
-    UserNotFoundError,
-    UserInactiveError,
 )
 from app.schemas.common import ErrorResponseSchema
 

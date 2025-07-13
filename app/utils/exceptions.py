@@ -1,4 +1,3 @@
-# app/utils/exceptions.py
 """
 Custom exception classes for the application.
 """

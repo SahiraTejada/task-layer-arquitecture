@@ -1,4 +1,3 @@
-# app/utils/response_docs.py
 """
 Reusable response documentation templates for OpenAPI/Swagger.
 """
