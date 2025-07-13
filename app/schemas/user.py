@@ -28,7 +28,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    id:int = Field(..., description="User ID")
+    user_id:int = Field(..., description="User ID")
     username: Optional[str] = Field(None, max_length=50, min_length=3)
     password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
     
@@ -64,7 +64,7 @@ class UserLogin(BaseModel):
     
     
 class UserChangePassword(BaseModel):
-    id: int = Field(..., description="User ID")
+    user_id: int = Field(..., description="User ID")
     old_password: str = Field(..., description="Current password")
     new_password: str = Field(..., min_length=8, description="New password")
     

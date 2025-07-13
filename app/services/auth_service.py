@@ -9,6 +9,7 @@ from app.schemas.user import (
     UserResponse,
     UserLogin,
     UserChangePassword,
+    UserUpdate,
 )
 from app.utils.exceptions import (
     InvalidCredentialsError,
@@ -122,29 +123,26 @@ class AuthService:
             AppValidationError: Password validation errors
         """
         try:
-            self.logger.info(f"Changing password for user {password_data.id}")
+            self.logger.info(f"Changing password for user {password_data.user_id}")
             
             # Validate password change data
             self._validate_password_change(password_data)
             
             # Get user using UserService (handles NotFoundError automatically)
-            user = self.user_service.get_by_id(password_data.id)
+            user = self.user_service.user_repository.get(password_data.user_id)
             
-            # Get actual user model for password verification
             
             # Verify current password
             if not verify_password(password_data.old_password, user.hashed_password):
-                self.logger.warning(f"Password change failed - incorrect old password for user {password_data.id}")
+                self.logger.warning(f"Password change failed - incorrect old password for user {password_data.user_id}")
                 raise InvalidCredentialsError("Current password is incorrect")
             
-            # Update password using UserService
-            from app.schemas.user import UserUpdate
-            update_data = UserUpdate(password=password_data.new_password)
+            update_data = UserUpdate(password=password_data.new_password,user_id=password_data.user_id)
             
             # UserService.update() handles password hashing, validation, and error handling
-            self.user_service.update(password_data.id, update_data)
+            self.user_service.update(password_data.user_id, update_data)
             
-            self.logger.info(f"Password changed successfully for user {password_data.id}")
+            self.logger.info(f"Password changed successfully for user {password_data.user_id}")
             return SuccessResponseSchema(
                 message="Password changed successfully"
             )
@@ -152,7 +150,7 @@ class AuthService:
         except (InvalidCredentialsError, AppValidationError):
             raise
         except Exception as e:
-            self.logger.error(f"Error changing password for user {password_data.id}: {str(e)}")
+            self.logger.error(f"Error changing password for user {password_data.user_id}: {str(e)}")
             raise ServiceError(f"Failed to change password: {str(e)}")
 
     # def reset_password(self, email: str, new_password: str) -> SuccessResponseSchema:
@@ -257,30 +255,3 @@ class AuthService:
         # Password strength validation is handled by UserService
         if len(password_data.new_password) < 8:
             raise AppValidationError("New password must be at least 8 characters long")
-
-
-# Example usage in routes:
-"""
-from app.services.auth_service import AuthService
-
-@router.post("/auth/register", response_model=UserResponse)
-async def register(
-    user_data: UserCreate,
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    return auth_service.register_user(user_data)
-
-@router.post("/auth/login", response_model=UserResponse)
-async def login(
-    login_data: UserLogin,
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    return auth_service.authenticate_user(login_data)
-
-@router.put("/auth/change-password", response_model=SuccessResponseSchema)
-async def change_password(
-    password_data: UserChangePassword,
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    return auth_service.change_password(password_data)
-"""
