@@ -12,11 +12,6 @@ from app.schemas.user import (
     UserFilters,
     UserBulkUpdate,
 )
-from app.utils.exceptions import (
-    UserAlreadyExistsError,
-    UserNotFoundError,
-    DatabaseError,
-)
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 

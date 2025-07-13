@@ -1,152 +1,151 @@
 from typing import Dict, Any
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-import logging
 
 from app.core.security import get_password_hash, verify_password
+from app.core.services.base_service import BaseService
 from app.core.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
+from app.schemas.user import UserCreate, UserResponse, UserLogin, UserChangePassword
 from app.schemas.common import SuccessResponseSchema
-from app.schemas.user import (
-    UserCreate,
-    UserResponse,
-    UserLogin,
-    UserChangePassword,
+from app.core.exceptions import (
+    ValidationError,
+    AuthenticationError,
+    AuthorizationError,
 )
 
-from app.utils.exceptions import (
-    InvalidCredentialsError,
-    UserAlreadyExistsError,
-    UserInactiveError,
-    DatabaseError,
-)
 
-logger = logging.getLogger(__name__)
-
-
-class AuthService:
-    """
-    Service layer for user-related business logic.
-    Handles user operations, authentication, and validation using Pydantic schemas.
-    """
-
+class AuthService(BaseService):
+    """Authentication service using UserService for user operations"""
+    
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
         self.user_repository = UserRepository(db)
         self.user_service = UserService(db)
-
+    
     def create_user(self, user_data: UserCreate) -> UserResponse:
-        """
-        Create a new user with validation and password hashing.
-
-        Args:
-            user_data: User creation data from Pydantic schema
-
-        Returns:
-            Created user response schema
-
-        Raises:
-            UserAlreadyExistsError: If email or username already exists
-        """
-        logger.info(f"Creating user with email: {user_data.email}")
-
-        # Check for existing users
-        self._check_user_uniqueness(user_data.email, user_data.username)
-
-        # Prepare user data for database
-        user_dict = self._prepare_user_data_for_creation(user_data)
-
-        try:
-            # Create user in database
+        """Create user using UserService - errors handled automatically"""
+        self.logger.info(f"Creating user with email: {user_data.email}")
+        
+        # Validations using BaseService methods (will raise ValidationError automatically)
+        email = self.validate_email_format(user_data.email)
+        username = self.validate_username(user_data.username)
+        self.validate_password_strength(user_data.password)
+        
+        
+        # Check uniqueness using BaseService method
+        self.check_resource_not_exists(
+            lambda: self.user_repository.exists_by_email(email),
+            "User",
+            "email",
+            email
+        )
+        self.check_resource_not_exists(
+            lambda: self.user_repository.exists_by_username(username),
+            "User",
+            "username",
+            username
+        )
+        
+        # Create user using transaction
+        def create_operation():
+            user_dict = self._prepare_user_data(user_data, email, username)
             db_user = self.user_repository.create(user_dict)
-            logger.info(f"User created successfully with ID: {db_user.id}")
-            return UserResponse.model_validate(db_user)
-        except Exception as e:
-            logger.error(f"Error creating user: {str(e)}")
-            raise DatabaseError(f"Failed to create user: {str(e)}")
-
+            self.logger.info(f"User created successfully with ID: {db_user.id}")
+            return db_user
+        
+        db_user = self.execute_in_transaction(create_operation)
+        return UserResponse.model_validate(db_user)
+    
     def authenticate_user(self, login_data: UserLogin) -> UserResponse:
-        """Authenticate user by email and password."""
-        logger.info(f"Authenticating user with email: {login_data.email}")
-
-        # Get user by email
-        user = self.user_repository.get_by_email(login_data.email)
-        if not user:
-            logger.warning(
-                f"Authentication failed - user not found: {login_data.email}"
-            )
-            raise InvalidCredentialsError("Invalid email or password")
-
+        """Authenticate user with enhanced validation"""
+        self.logger.info(f"Authenticating user with email: {login_data.email}")
+        
+        # Validate email format first
+        email = self.validate_email_format(login_data.email)
+        
+        # Get user using UserService (which has validation built-in)
+        try:
+            user = self.user_service.get_user_by_email(email)
+            # Convert back to model for password verification
+        except Exception as e:
+            self.logger.warning(f"User not found during authentication: {email}")
+            raise AuthenticationError("Invalid email or password", field="email")
+        
         # Verify password
         if not verify_password(login_data.password, user.hashed_password):
-            logger.warning(
-                f"Authentication failed - invalid password: {login_data.email}"
-            )
-            raise InvalidCredentialsError("Invalid email or password")
-
-        # Check if user is active
+            self.logger.warning(f"Invalid password for user: {email}")
+            raise AuthenticationError("Invalid email or password", field="password")
+        
+        # Check active status
         if not user.is_active:
-            logger.warning(f"Authentication failed - inactive user: {login_data.email}")
-            raise UserInactiveError("User account is inactive")
-
-        logger.info(f"User authenticated successfully: {login_data.email}")
-
-        # Return authentication response
-        user_response = UserResponse.model_validate(user)
-
-        return user_response
-
-    def change_password(
-        self,  user_data: UserChangePassword
-    ) -> SuccessResponseSchema:
-        user_id= user_data.id
-        old_password = user_data.old_password
-        new_password = user_data.new_password
-
-        """Change user password after verifying old password."""
-        logger.info(f"Changing password for user {user_id}")
-
-        # Get user
-        user = self.user_service._get_user_by_id_or_raise(user_id)
-
-        # Verify old password
-        if not verify_password(old_password, user.hashed_password):
-            logger.warning(
-                f"Password change failed - incorrect old password for user {user_id}"
+            self.logger.warning(f"Inactive user attempted login: {email}")
+            raise AuthorizationError(
+                "Your account has been deactivated",
+                suggestions=["Contact administrator to reactivate your account"]
             )
-            raise InvalidCredentialsError("Current password is incorrect")
-
-        # Update password
-        update_data = {
-            "hashed_password": get_password_hash(new_password),
-            "updated_at": datetime.now(timezone.utc),
-        }
-
-        try:
+        
+        self.logger.info(f"User authenticated successfully: {email}")
+        return user
+    
+    def change_password(self, user_id: int, password_data: UserChangePassword) -> SuccessResponseSchema:
+        """Change user password with validation"""
+        self.logger.info(f"Changing password for user {user_id}")
+        
+        # Validate user ID
+        valid_user_id = self.validate_id_parameter(user_id, "user_id")
+        
+        # Validate new password strength
+        self.validate_password_strength(password_data.new_password, "new_password")
+        
+        # Get user using UserService (which has validation built-in)
+        self.user_service.get_user_by_id(valid_user_id)
+        # Get the actual model for password verification
+        user = self.user_repository.get(valid_user_id)
+        
+        # Verify current password
+        if not verify_password(password_data.current_password, user.hashed_password):
+            raise AuthenticationError("Current password is incorrect", field="current_password")
+        
+        # Check if new password is different from current
+        if verify_password(password_data.new_password, user.hashed_password):
+            raise ValidationError(
+                field="new_password",
+                message="New password must be different from current password",
+                constraint="different_from_current"
+            )
+        
+        # Update password using transaction
+        def update_operation():
+            update_data = {
+                "hashed_password": get_password_hash(password_data.new_password)
+            }
+            update_data = self.prepare_audit_fields(update_data, is_update=True)
+            
             self.user_repository.update(user, update_data)
-            logger.info(f"Password changed successfully for user {user_id}")
-            return SuccessResponseSchema(
-                message="Password changed successfully",
-            )
-        except Exception as e:
-            logger.error(f"Error changing password for user {user_id}: {str(e)}")
-            raise DatabaseError(f"Failed to change password: {str(e)}")
-
-    def _check_user_uniqueness(self, email: str, username: str) -> None:
-        """Check if email and username are unique."""
-        if self.user_repository.exists_by_email(email):
-            raise UserAlreadyExistsError(f"User with email {email} already exists")
-
-        if self.user_repository.exists_by_username(username):
-            raise UserAlreadyExistsError(
-                f"User with username {username} already exists"
-            )
-
-    def _prepare_user_data_for_creation(self, user_data: UserCreate) -> Dict[str, Any]:
-        """Prepare user data dictionary for database creation."""
+            self.logger.info(f"Password changed successfully for user {valid_user_id}")
+            return SuccessResponseSchema(message="Password updated successfully")
+        
+        return self.execute_in_transaction(update_operation)
+    
+    
+    def _prepare_user_data(self, user_data: UserCreate, email: str = None, username: str = None) -> Dict[str, Any]:
+        """Prepare user data for creation with normalized values"""
         user_dict = user_data.model_dump()
+        
+        # Use normalized values if provided
+        if email:
+            user_dict["email"] = email
+        if username:
+            user_dict["username"] = username
+        
+        # Hash password
         user_dict["hashed_password"] = get_password_hash(user_dict.pop("password"))
         user_dict["is_active"] = True
-        user_dict["created_at"] = datetime.now(timezone.utc)
-        user_dict["updated_at"] = datetime.now(timezone.utc)
+        
+        # Clean data using BaseService method
+        user_dict = self.clean_string_data(user_dict, ["email", "username", "full_name"])
+        
+        # Add audit fields
+        user_dict = self.prepare_audit_fields(user_dict)
+        
         return user_dict
