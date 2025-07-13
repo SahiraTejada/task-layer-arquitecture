@@ -1,4 +1,3 @@
-# app/core/services/auth_service.py
 from sqlalchemy.orm import Session
 import logging
 
