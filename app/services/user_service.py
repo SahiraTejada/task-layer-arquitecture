@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import logging
 
+from app.repositories.user_repository import UserRepository
 from app.services.base import BaseService
 from app.core.security import get_password_hash
-from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.schemas.user import (
     UserCreate,
@@ -15,7 +15,7 @@ from app.schemas.user import (
     UserFilters,
     UserBulkUpdate,
 )
-from app.schemas.common import PaginatedResponse, PaginationRequest, SuccessResponseSchema
+from app.schemas.common import PaginatedResponse, PaginationRequest
 from app.utils.exceptions import (
     UserAlreadyExistsError, 
     UserNotFoundError,
@@ -33,13 +33,11 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
     """
     
     def __init__(self, db: Session):
-        self.user_repository = UserRepository(db)
         super().__init__(
-            repository=self.user_repository,
+            repository=UserRepository(db),
             response_schema=UserResponse,
             entity_name="User"
         )
-        self.db = db
 
     # Additional user-specific methods beyond base CRUD
     
@@ -48,7 +46,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.debug(f"Fetching user with email: {email}")
             
-            user = self.user_repository.get_by_email(email)
+            user = self.repository.get_by_email(email)
             if not user:
                 raise UserNotFoundError(f"User with email {email} not found")
             
@@ -65,7 +63,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.debug(f"Fetching user with username: {username}")
             
-            user = self.user_repository.get_by_username(username)
+            user = self.repository.get_by_username(username)
             if not user:
                 raise UserNotFoundError(f"User with username {username} not found")
             
@@ -82,7 +80,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.debug(f"Fetching user with tasks for ID: {user_id}")
             
-            user = self.user_repository.get(user_id)
+            user = self.repository.get(user_id)
             if not user:
                 raise UserNotFoundError(f"User with ID {user_id} not found")
             
@@ -127,7 +125,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
                 
                 updates.append(user_update)
             
-            updated_count = self.user_repository.bulk_update(updates)
+            updated_count = self.repository.bulk_update(updates)
             self.logger.info(f"Bulk update completed: {updated_count} users updated")
             return updated_count
             
@@ -162,16 +160,16 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
     # Utility methods
     def email_exists(self, email: str, exclude_id: Optional[int] = None) -> bool:
         """Check if email exists."""
-        return self.user_repository.exists_by_email(email, exclude_id)
+        return self.repository.exists_by_email(email, exclude_id)
 
     def username_exists(self, username: str, exclude_id: Optional[int] = None) -> bool:
         """Check if username exists."""
-        return self.user_repository.exists_by_username(username, exclude_id)
+        return self.repository.exists_by_username(username, exclude_id)
 
     def get_active_users(self) -> List[UserResponse]:
         """Get all active users."""
         try:
-            active_users = self.user_repository.get_active_users()
+            active_users = self.repository.get_active_users()
             return [UserResponse.model_validate(user) for user in active_users]
         except Exception as e:
             self.logger.error(f"Error fetching active users: {str(e)}")

@@ -1,4 +1,3 @@
-# app/core/services/base_service.py
 from typing import Generic, TypeVar, Type, Optional, List, Dict, Any
 from abc import ABC, abstractmethod
 from sqlalchemy.orm import Session

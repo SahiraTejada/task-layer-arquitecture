@@ -81,7 +81,7 @@ class AuthService:
 
             email = login_data.email
             password = login_data.password
-            user = self.user_service.user_repository.get_by_email(email)
+            user = self.user_service.repository.get_by_email(email)
             if not user:
                 raise InvalidCredentialsError("Invalid email or password")
             
@@ -129,7 +129,7 @@ class AuthService:
             self._validate_password_change(password_data)
             
             # Get user using UserService (handles NotFoundError automatically)
-            user = self.user_service.user_repository.get(password_data.user_id)
+            user = self.user_service.repository.get(password_data.user_id)
             
             
             # Verify current password
