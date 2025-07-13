@@ -8,7 +8,7 @@ class TagBase(BaseModel):
     color: TagColorEnum = Field(..., description="Color of the tag")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Urgent",
                 "color": "red"
