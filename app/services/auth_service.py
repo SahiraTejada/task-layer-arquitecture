@@ -2,7 +2,7 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 
 from app.core.security import get_password_hash, verify_password
-from app.services.base_service import BaseService
+from app.services.base import BaseService
 from app.services.user_service import UserService
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserResponse, UserLogin, UserChangePassword
