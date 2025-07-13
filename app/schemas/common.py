@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from typing import Any, Generic, Optional, TypeVar, List
-from pydantic.generics import GenericModel
 
 T = TypeVar("T")
 class PaginationBase(BaseModel):
@@ -11,7 +10,7 @@ class PaginationRequest(PaginationBase):
     pass
 
 
-class PaginatedResponse(GenericModel, Generic[T]):
+class PaginatedResponse(BaseModel, Generic[T]):
     """Generic paginated response schema."""
     items: List[T]
     page: int = Field(..., description="Current page number")
