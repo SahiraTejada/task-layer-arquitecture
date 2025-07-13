@@ -18,7 +18,7 @@ from app.utils.exceptions import (
 )
 from app.utils.response_docs import ResponseDocs
 
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
+auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
@@ -29,12 +29,9 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 @auth_router.post(
     "/register",
     responses={
-        201: ResponseDocs.created_201(
-            UserResponse,
-            "User created successfully"
-        ),
+        201: ResponseDocs.created_201(UserResponse, "User created successfully"),
         409: ResponseDocs.conflict_409("User"),
-        **ResponseDocs.standard_responses(include_auth=False, resource_name="User")
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
     },
     status_code=status.HTTP_201_CREATED,
     summary="Create a new user",
@@ -64,7 +61,11 @@ async def create_user(
 
 @auth_router.post(
     "/login",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User login successfully"),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Authenticate user",
     description="Authenticate a user with email and password.",
 )
@@ -88,7 +89,11 @@ async def authenticate_user(
 
 @auth_router.put(
     "/change-password",
-    response_model=SuccessResponseSchema,
+        responses={
+        200: ResponseDocs.success_200(SuccessResponseSchema, "Password updated successfully"),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Change user password",
     description="Change a user's password after verifying the current password.",
 )
