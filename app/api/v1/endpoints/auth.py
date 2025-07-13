@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.api.__deps import get_service
 from app.config.database import get_db
 from app.services.auth_service import AuthService
 from app.schemas.common import SuccessResponseSchema
@@ -21,9 +22,7 @@ from app.utils.response_docs import ResponseDocs
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
-    """Dependency to get AuthService instance."""
-    return AuthService(db)
+get_auth_service = get_service(AuthService)
 
 
 @auth_router.post(
