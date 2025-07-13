@@ -3,7 +3,7 @@ venv/
 ENV/
 env/
 .venv/
-
+app/structure.txt
 # Archivos de entorno y configuración sensibles
 .env
 .env.*
