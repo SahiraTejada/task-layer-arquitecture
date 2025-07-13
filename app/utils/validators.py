@@ -1,6 +1,6 @@
 import re
 from typing import List, Optional, Any, Dict, Union
-from app.core.exceptions import ValidationError, ValidationErrorCollector
+from app.core.exceptions import ValidationError
 from app.core.messages import ValidationMessages
 
 
@@ -186,52 +186,52 @@ class Validators:
         
         return value
     
-    @staticmethod
-    def validate_user_data_bulk(data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        IMPROVEMENT 2: Validate user data with improved handling of multiple errors.
+    # @staticmethod
+    # def validate_user_data_bulk(data: Dict[str, Any]) -> Dict[str, Any]:
+    #     """
+    #     IMPROVEMENT 2: Validate user data with improved handling of multiple errors.
         
-        Args:
-            data: User data to validate
+    #     Args:
+    #         data: User data to validate
             
-        Returns:
-            dict: Validated and normalized data
+    #     Returns:
+    #         dict: Validated and normalized data
             
-        Raises:
-            ValidationError: With all accumulated errors
-        """
-        collector = ValidationErrorCollector()
-        validated_data = {}
+    #     Raises:
+    #         ValidationError: With all accumulated errors
+    #     """
+    #     collector = ValidationErrorCollector()
+    #     validated_data = {}
         
-        # Email
-        try:
-            validated_data['email'] = Validators.validate_email(data.get('email'))
-        except ValidationError as e:
-            # IMPROVEMENT 2: Use add_validation_error to handle multiple errors correctly
-            collector.add_validation_error(e)
+    #     # Email
+    #     try:
+    #         validated_data['email'] = Validators.validate_email(data.get('email'))
+    #     except ValidationError as e:
+    #         # IMPROVEMENT 2: Use add_validation_error to handle multiple errors correctly
+    #         collector.add_validation_error(e)
         
-        # Username
-        try:
-            validated_data['username'] = Validators.validate_username(data.get('username'))
-        except ValidationError as e:
-            collector.add_validation_error(e)
+    #     # Username
+    #     try:
+    #         validated_data['username'] = Validators.validate_username(data.get('username'))
+    #     except ValidationError as e:
+    #         collector.add_validation_error(e)
         
-        # Password
-        try:
-            Validators.validate_password(data.get('password'))
-        except ValidationError as e:
-            collector.add_validation_error(e)
+    #     # Password
+    #     try:
+    #         Validators.validate_password(data.get('password'))
+    #     except ValidationError as e:
+    #         collector.add_validation_error(e)
         
-        # Full name (optional)
-        if data.get('full_name'):
-            try:
-                validated_data['full_name'] = Validators.validate_string_length(
-                    data['full_name'], 'full_name', 2, 100
-                )
-            except ValidationError as e:
-                collector.add_validation_error(e)
+    #     # Full name (optional)
+    #     if data.get('full_name'):
+    #         try:
+    #             validated_data['full_name'] = Validators.validate_string_length(
+    #                 data['full_name'], 'full_name', 2, 100
+    #             )
+    #         except ValidationError as e:
+    #             collector.add_validation_error(e)
         
-        # Raise if there are accumulated errors
-        collector.raise_if_errors()
+    #     # Raise if there are accumulated errors
+    #     collector.raise_if_errors()
         
-        return validated_data
+    #     return validated_data

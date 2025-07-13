@@ -87,15 +87,18 @@ class AuthService(BaseService):
         self.logger.info(f"User authenticated successfully: {email}")
         return user
     
-    def change_password(self, user_id: int, password_data: UserChangePassword) -> SuccessResponseSchema:
+    def change_password(self, password_data: UserChangePassword) -> SuccessResponseSchema:
         """Change user password with validation"""
+        user_id = password_data.id
+        new_password = password_data.new_password
+        old_password = password_data.old_password
         self.logger.info(f"Changing password for user {user_id}")
         
         # Validate user ID
         valid_user_id = self.validate_id_parameter(user_id, "user_id")
         
         # Validate new password strength
-        self.validate_password_strength(password_data.new_password, "new_password")
+        self.validate_password_strength(new_password, "new_password")
         
         # Get user using UserService (which has validation built-in)
         self.user_service.get_user_by_id(valid_user_id)
@@ -103,11 +106,11 @@ class AuthService(BaseService):
         user = self.user_repository.get(valid_user_id)
         
         # Verify current password
-        if not verify_password(password_data.current_password, user.hashed_password):
+        if not verify_password(old_password, user.hashed_password):
             raise AuthenticationError("Current password is incorrect", field="current_password")
         
         # Check if new password is different from current
-        if verify_password(password_data.new_password, user.hashed_password):
+        if verify_password(new_password, user.hashed_password):
             raise ValidationError(
                 field="new_password",
                 message="New password must be different from current password",
@@ -117,7 +120,7 @@ class AuthService(BaseService):
         # Update password using transaction
         def update_operation():
             update_data = {
-                "hashed_password": get_password_hash(password_data.new_password)
+                "hashed_password": get_password_hash(new_password)
             }
             update_data = self.prepare_audit_fields(update_data, is_update=True)
             
