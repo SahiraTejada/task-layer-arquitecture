@@ -1,4 +1,3 @@
-# app/api/v1/users.py
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -21,7 +20,7 @@ from app.utils.exceptions import (
     ServiceError,
 )
 
-users_router = APIRouter(prefix="/users", tags=["users"])
+users_router = APIRouter(prefix="/users", tags=["Users"])
 
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
