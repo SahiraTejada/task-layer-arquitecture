@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import logging
 
 from app.core.security import get_password_hash
-from app.core.services.base_service import BaseService
+from app.services.base_service import BaseService
 from app.repositories.user_repository import UserRepository
 from app.models.user import User
 from app.schemas.user import (

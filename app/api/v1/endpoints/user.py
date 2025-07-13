@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
-from app.core.services.user_service import UserService
+from app.services.user_service import UserService
 from app.schemas.user import (
     UserUpdate,
     UserResponse,

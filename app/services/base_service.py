@@ -10,7 +10,7 @@ from app.core.exceptions import (
     DuplicateResourceError,
     DatabaseError
 )
-from app.core.validators import Validators
+from app.utils.validators import Validators
 
 T = TypeVar('T')
 
