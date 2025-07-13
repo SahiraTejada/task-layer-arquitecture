@@ -1,23 +1,24 @@
-# Entorno virtual
+# Virtual environment
 venv/
 ENV/
 env/
 .venv/
 app/structure.txt
-# Archivos de entorno y configuración sensibles
+
+# Environment and sensitive configuration files
 .env
 .env.*
 
-# Archivos de bases de datos locales
+# Local database files
 *.db
 *.sqlite3
 
-# __pycache__ y archivos compilados de Python
+# __pycache__ and Python compiled files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Archivos de logs
+# Log files
 *.log
 
 # Alembic
@@ -29,7 +30,7 @@ alembic/versions/
 # MacOS
 .DS_Store
 
-# Archivos de pruebas (pytest, coverage, etc.)
+# Test files (pytest, coverage, etc.)
 .coverage
 htmlcov/
 .tox/
@@ -38,5 +39,23 @@ htmlcov/
 # Jupyter Notebooks
 .ipynb_checkpoints/
 
-# Archivos de dependencias generados automáticamente
+# Auto-generated dependency files
 pip-log.txt
+
+# IDE files
+.idea/
+*.swp
+*.swo
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
