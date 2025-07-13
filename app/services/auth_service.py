@@ -77,29 +77,29 @@ class AuthService:
         try:
             self.logger.info(f"Authenticating user with email: {login_data.email}")
             
-            # Get user by email using UserService
-            try:
-                user_response = self.user_service.get_by_email(login_data.email)
-            except Exception:
-                # Don't reveal if email exists - security best practice
-                self.logger.warning(f"Authentication failed - user not found: {login_data.email}")
+
+            email = login_data.email
+            password = login_data.password
+            user = self.user_service.user_repository.get_by_email(email)
+            if not user:
                 raise InvalidCredentialsError("Invalid email or password")
             
-            # Get the actual user model for password verification
-            user = self.user_service.user_repository.get_by_email(login_data.email)
-            
-            # Verify password
-            if not verify_password(login_data.password, user.hashed_password):
+            if not verify_password(password, user.hashed_password):
                 self.logger.warning(f"Authentication failed - invalid password: {login_data.email}")
                 raise InvalidCredentialsError("Invalid email or password")
             
+            if not user.is_active:
+                self.logger.warning(f"Authentication failed - inactive user: {login_data.email}")
+                raise UserInactiveError("User account is inactive")
+            
+  
             # Check if user is active
             if not user.is_active:
                 self.logger.warning(f"Authentication failed - inactive user: {login_data.email}")
                 raise UserInactiveError("User account is inactive")
             
             self.logger.info(f"User authenticated successfully: {login_data.email}")
-            return user_response
+            return UserResponse.model_validate(user)
             
         except (InvalidCredentialsError, UserInactiveError):
             raise

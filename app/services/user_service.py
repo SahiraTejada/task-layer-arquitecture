@@ -1,4 +1,3 @@
-# app/core/services/user_service.py
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -20,7 +19,6 @@ from app.schemas.common import PaginatedResponse, PaginationRequest, SuccessResp
 from app.utils.exceptions import (
     UserAlreadyExistsError, 
     UserNotFoundError,
-    DatabaseError,
     AppValidationError,
     ServiceError,
 )
