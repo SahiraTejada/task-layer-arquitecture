@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.config.database import get_db
-from app.core.services.auth_service import AuthService
+from app.services.auth_service import AuthService
 from app.schemas.common import SuccessResponseSchema
 from app.schemas.user import (
     UserCreate,
@@ -16,6 +16,7 @@ from app.utils.exceptions import (
     UserNotFoundError,
     DatabaseError,
 )
+from app.utils.response_docs import ResponseDocs
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -27,7 +28,14 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 @auth_router.post(
     "/register",
-    response_model=UserResponse,
+    responses={
+        201: ResponseDocs.created_201(
+            UserResponse,
+            "User created successfully"
+        ),
+        409: ResponseDocs.conflict_409("User"),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User")
+    },
     status_code=status.HTTP_201_CREATED,
     summary="Create a new user",
     description="Create a new user account with email, username, and password validation.",
@@ -45,7 +53,7 @@ async def create_user(
     - **full_name**: User's full name (optional)
     """
     try:
-        return auth_service.create_user(user_data)
+        return auth_service.register_user(user_data)
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except DatabaseError as e:

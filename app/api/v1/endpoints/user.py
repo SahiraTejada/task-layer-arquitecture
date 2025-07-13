@@ -1,21 +1,24 @@
+# app/api/v1/users.py
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
-from app.core.services.user_service import UserService
+from app.services.user_service import UserService
 from app.schemas.user import (
     UserUpdate,
     UserResponse,
     UserWithTasksResponse,
-    UserPaginatedResponse,
     UserFilters,
     UserBulkUpdate,
 )
+from app.schemas.common import PaginatedResponse, PaginationRequest
 from app.utils.exceptions import (
     UserAlreadyExistsError,
     UserNotFoundError,
     DatabaseError,
+    AppValidationError,
+    ServiceError,
 )
 
 users_router = APIRouter(prefix="/users", tags=["users"])
@@ -42,10 +45,15 @@ async def get_user(
     - **user_id**: The ID of the user to retrieve
     """
     try:
-        return user_service.get_user_by_id(user_id)
+        return user_service.get_by_id(user_id)  # Using base service method
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
@@ -66,10 +74,15 @@ async def get_user_by_email(
     - **email**: The email address of the user to retrieve
     """
     try:
-        return user_service.get_user_by_email(email)
+        return user_service.get_by_email(email)  # User-specific method
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
@@ -90,10 +103,15 @@ async def get_user_by_username(
     - **username**: The username of the user to retrieve
     """
     try:
-        return user_service.get_user_by_username(username)
+        return user_service.get_by_username(username)  # User-specific method
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
@@ -114,10 +132,15 @@ async def get_user_with_tasks(
     - **user_id**: The ID of the user to retrieve with tasks
     """
     try:
-        return user_service.get_user_with_tasks(user_id)
+        return user_service.get_with_tasks(user_id)  # Updated method name
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
@@ -140,23 +163,28 @@ async def get_all_users(
     - **limit**: Maximum number of users to return (default: 100, max: 1000)
     """
     try:
-        return user_service.get_all_users(skip=skip, limit=limit)
-    except ValueError as e:
+        return user_service.get_all(skip=skip, limit=limit)  # Using base service method
+    except AppValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
 
 
 @users_router.get(
     "/paginated/list",
-    response_model=UserPaginatedResponse,
+    response_model=PaginatedResponse[UserResponse],
     summary="Get users with advanced pagination",
     description="Retrieve users with advanced pagination and filtering options.",
 )
 async def get_users_paginated(
-    skip: int = Query(0, ge=0, description="Number of users to skip"),
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of users to return"),
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(10, ge=1, le=100, description="Maximum number of users to return per page"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     email_contains: Optional[str] = Query(None, description="Filter by email containing text"),
     username_contains: Optional[str] = Query(None, description="Filter by username containing text"),
@@ -166,14 +194,17 @@ async def get_users_paginated(
     """
     Get users with advanced pagination and filtering.
     
-    - **skip**: Number of users to skip (default: 0)
-    - **limit**: Maximum number of users to return (default: 10, max: 100)
+    - **page**: Page number (default: 1)
+    - **limit**: Maximum number of users to return per page (default: 10, max: 100)
     - **is_active**: Filter by active status
     - **email_contains**: Filter by email containing text
     - **username_contains**: Filter by username containing text
     - **full_name_contains**: Filter by full name containing text
     """
     try:
+        # Create pagination request
+        pagination = PaginationRequest(page=page, limit=limit)
+        
         # Create filters object
         filters = UserFilters(
             is_active=is_active,
@@ -182,17 +213,14 @@ async def get_users_paginated(
             full_name_contains=full_name_contains,
         )
         
-        return user_service.get_users_with_pagination(
-            skip=skip, 
-            limit=limit, 
-            filters=filters
-        )
-    except ValueError as e:
+        return user_service.get_filtered_paginated(pagination, filters)  # Updated method
+        
+    except AppValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except DatabaseError as e:
+    except ServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -217,7 +245,7 @@ async def update_user(
     - **user_data**: Updated user information
     """
     try:
-        return user_service.update_user(user_id, user_data)
+        return user_service.update(user_id, user_data)  # Using base service method
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -228,7 +256,12 @@ async def update_user(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e)
         )
-    except DatabaseError as e:
+    except AppValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except (DatabaseError, ServiceError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -251,18 +284,22 @@ async def delete_user(
     - **user_id**: The ID of the user to delete
     """
     try:
-        return user_service.delete_user(user_id)
+        return user_service.delete(user_id)  # Using base service method
     except UserNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
-    except DatabaseError as e:
+    except AppValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except (DatabaseError, ServiceError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
-
 
 
 @users_router.put(
@@ -282,12 +319,12 @@ async def bulk_update_users(
     - **update_data**: Data to update for all specified users
     """
     try:
-        updated_count = user_service.bulk_update_users(bulk_data)
+        updated_count = user_service.bulk_update_users(bulk_data)  # User-specific method
         return {
             "message": f"Successfully updated {updated_count} users",
             "updated_count": updated_count
         }
-    except DatabaseError as e:
+    except (DatabaseError, ServiceError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -323,12 +360,12 @@ async def get_user_count(
             full_name_contains=full_name_contains,
         )
         
-        count = user_service.get_user_count(filters)
+        count = user_service.count(**filters.model_dump(exclude_none=True))  # Using base service method
         return {"total_users": count}
-    except Exception as e:
+    except ServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error counting users: {str(e)}"
+            detail=str(e)
         )
 
 
@@ -347,8 +384,14 @@ async def check_user_exists(
     
     - **user_id**: The ID of the user to check
     """
-    exists = user_service.user_exists(user_id)
-    return {"exists": exists}
+    try:
+        exists = user_service.exists(user_id)  # Using base service method
+        return {"exists": exists}
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @users_router.get(
@@ -368,7 +411,7 @@ async def check_email_exists(
     - **email**: The email address to check
     - **exclude_id**: User ID to exclude from the check (useful for updates)
     """
-    exists = user_service.email_exists(email, exclude_id)
+    exists = user_service.email_exists(email, exclude_id)  # User-specific method
     return {"exists": exists}
 
 
@@ -389,5 +432,86 @@ async def check_username_exists(
     - **username**: The username to check
     - **exclude_id**: User ID to exclude from the check (useful for updates)
     """
-    exists = user_service.username_exists(username, exclude_id)
+    exists = user_service.username_exists(username, exclude_id)  # User-specific method
     return {"exists": exists}
+
+
+# Additional endpoints leveraging the new BaseService capabilities
+
+@users_router.get(
+    "/active/list",
+    response_model=List[UserResponse],
+    summary="Get active users",
+    description="Retrieve all active users.",
+)
+async def get_active_users(
+    user_service: UserService = Depends(get_user_service),
+):
+    """
+    Get all active users.
+    """
+    try:
+        return user_service.get_active_users()  # User-specific method
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@users_router.put(
+    "/{user_id}/activate",
+    response_model=UserResponse,
+    summary="Activate user",
+    description="Activate a user account.",
+)
+async def activate_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+):
+    """
+    Activate a user account.
+    
+    - **user_id**: The ID of the user to activate
+    """
+    try:
+        return user_service.activate_user(user_id)  # User-specific method
+    except UserNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@users_router.put(
+    "/{user_id}/deactivate",
+    response_model=UserResponse,
+    summary="Deactivate user",
+    description="Deactivate a user account.",
+)
+async def deactivate_user(
+    user_id: int,
+    user_service: UserService = Depends(get_user_service),
+):
+    """
+    Deactivate a user account.
+    
+    - **user_id**: The ID of the user to deactivate
+    """
+    try:
+        return user_service.deactivate_user(user_id)  # User-specific method
+    except UserNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

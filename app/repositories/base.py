@@ -1,23 +1,20 @@
 from typing import Generic, TypeVar, Type, Optional, List, Dict, Any, Tuple, Union
-# Import generic programming tools and type hints
-
 from datetime import datetime, timezone
-# Import datetime and timezone for timestamps
-
 from sqlalchemy.orm import Session
-# Import SQLAlchemy Session for database operations
+from sqlalchemy.exc import SQLAlchemyError
+from contextlib import contextmanager
+import logging
 
 from pydantic import BaseModel
-# Import Pydantic BaseModel for schema validation
-
 from app.models import BaseModel as GeneralBaseModel
 from app.schemas.common import PaginatedResponse, PaginationRequest
-# Import your SQLAlchemy base model (renamed to avoid conflict with Pydantic BaseModel)
-
+from app.utils.exceptions import DatabaseError
 # Define type variables to be used with generics
 ModelType = TypeVar("ModelType", bound=GeneralBaseModel)       # SQLAlchemy model type
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel) # Pydantic schema for creation
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel) # Pydantic schema for update
+
+logger = logging.getLogger(__name__)
 
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
@@ -30,21 +27,33 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
         self.db = db
 
+    @contextmanager
+    def transaction(self):
+            """Context manager for database transactions."""
+            try:
+                yield self.db
+                self.db.commit()
+            except SQLAlchemyError as e:
+                self.db.rollback()
+                logger.error(f"Database transaction failed: {str(e)}")
+                raise DatabaseError(f"Database operation failed: {str(e)}")
+            except Exception as e:
+                self.db.rollback()
+                logger.error(f"Unexpected error during transaction: {str(e)}")
+                raise DatabaseError(f"Unexpected database error: {str(e)}")
+
     def get(self, id: int) -> Optional[ModelType]:
-        """
-        Get one record by its primary key id.
-        Excludes soft-deleted records if the model has 'deleted_at' column.
-        """
-        # Start a query on the model's table, filtering by the given id
-        query = self.db.query(self.model).filter(self.model.id == id)
-        # hasattr is a built-in Python function that checks if an object has a specific attribute.
-        # it returns True if the object has that attribute and False if it does not..
-        # Further filter to include only records that are not soft deleted (deleted_at is None)
-        if hasattr(self.model, "deleted_at"):
-            query = query.filter(self.model.deleted_at.is_(None))
+            """Get one record by its primary key id."""
+            try:
+                query = self.db.query(self.model).filter(self.model.id == id)
+                if hasattr(self.model, "deleted_at"):
+                    query = query.filter(self.model.deleted_at.is_(None))
+                return query.first()
+            except SQLAlchemyError as e:
+                logger.error(f"Error fetching {self.model.__name__} with ID {id}: {str(e)}")
+                raise DatabaseError(f"Failed to fetch record: {str(e)}")
             
         # Execute the query and return the first matching record or None if not found
-        return query.first()
 
     def get_multi(self, skip: int = 0, limit: int = 100, **filters) -> List[ModelType]:
         """
@@ -127,29 +136,17 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
 
         # Check if the input is a dictionary
-        if isinstance(obj_in, dict):
-            # If yes, use it directly as the data to insert
-            obj_data = obj_in
-        else:
-            # If it's a Pydantic model, convert it to a dict
-            # 'exclude_unset=True' ignores fields that were not explicitly set
-            obj_data = obj_in.model_dump(exclude_unset=True)
+        with self.transaction():
+            if isinstance(obj_in, dict):
+                obj_data = obj_in
+            else:
+                obj_data = obj_in.model_dump(exclude_unset=True)
 
-        # Create a new instance of the SQLAlchemy model with the provided data
-        db_obj = self.model(**obj_data)
-
-        # Add the new object to the current database session
-        self.db.add(db_obj)
-
-        # Commit the transaction to save the object to the database
-        self.db.commit()
-
-        # Refresh the object instance with data from the database (e.g., to get auto-generated fields like 'id')
-        self.db.refresh(db_obj)
-
-        # Return the created database object
-        return db_obj
-
+            db_obj = self.model(**obj_data)
+            self.db.add(db_obj)
+            self.db.flush()  # Flush to get the ID without committing
+            self.db.refresh(db_obj)
+            return db_obj
 
     def create_multi(self, objs_in: List[Union[CreateSchemaType, Dict[str, Any]]]) -> List[ModelType]:
         """
@@ -164,38 +161,24 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
 
         # Initialize an empty list to hold the model instances to be created
-        db_objs = []
-
-        # Loop through each object in the input list
-        for obj_in in objs_in:
-
-            # If the input is a dictionary, use it directly
-            if isinstance(obj_in, dict):
-                obj_data = obj_in
-            else:
-                # If it's a Pydantic model, convert it to a dictionary,
-                # excluding fields that weren't explicitly set
-                obj_data = obj_in.model_dump(exclude_unset=True)
-
-            # Create a new instance of the SQLAlchemy model using the data
-            db_obj = self.model(**obj_data)
-
-            # Add the instance to the list of objects to insert
-            db_objs.append(db_obj)
-
-        # Add all model instances to the session at once (bulk insert)
-        self.db.add_all(db_objs)
-
-        # Commit the transaction to save all records in the database
-        self.db.commit()
-
-        # Refresh each instance to get updated data from the database
-        # (e.g., auto-generated fields like ID, timestamps)
-        for db_obj in db_objs:
-            self.db.refresh(db_obj)
-
-        # Return the list of created model instances
-        return db_objs
+        with self.transaction():
+            db_objs = []
+            for obj_in in objs_in:
+                if isinstance(obj_in, dict):
+                    obj_data = obj_in
+                else:
+                    obj_data = obj_in.model_dump(exclude_unset=True)
+                
+                db_obj = self.model(**obj_data)
+                db_objs.append(db_obj)
+            
+            self.db.add_all(db_objs)
+            self.db.flush()
+            
+            for db_obj in db_objs:
+                self.db.refresh(db_obj)
+            
+            return db_objs
 
 
     def update(self, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
@@ -211,56 +194,46 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
 
         # Check if the input is a dictionary
-        if isinstance(obj_in, dict):
-            # If yes, use it directly as the update data
-            update_data = obj_in
-        else:
-            # If it's a Pydantic model, convert it to a dictionary
-            # Only include fields that were actually set (exclude unset fields)
-            update_data = obj_in.model_dump(exclude_unset=True)
+        with self.transaction():
+            if isinstance(obj_in, dict):
+                update_data = obj_in
+            else:
+                update_data = obj_in.model_dump(exclude_unset=True)
 
-        # Loop through the update data to apply each field to the database object
-        for field, value in update_data.items():
-            # Only update if the field exists on the model instance
-            if hasattr(db_obj, field):
-                # Set the new value for the field
-                setattr(db_obj, field, value)
+            for field, value in update_data.items():
+                if hasattr(db_obj, field):
+                    setattr(db_obj, field, value)
 
-        # Add the modified object back to the session
-        self.db.add(db_obj)
-
-        # Commit the changes to the database
-        self.db.commit()
-
-        # Refresh the object to reflect any DB-generated values (e.g., updated timestamps)
-        self.db.refresh(db_obj)
-
-        # Return the updated object
-        return db_obj
+            self.db.add(db_obj)
+            self.db.flush()
+            self.db.refresh(db_obj)
+            return db_obj
 
 
     def delete(self, id: int) -> Optional[ModelType]:
         """
         Permanently delete a record by id.
         """
-        obj = self.db.query(self.model).filter(self.model.id == id).first()
-        if obj:
-            self.db.delete(obj)
-            self.db.commit()
-        return obj
+        with self.transaction():
+            obj = self.db.query(self.model).filter(self.model.id == id).first()
+            if obj:
+                self.db.delete(obj)
+                self.db.flush()
+            return obj
 
     def soft_delete(self, id: int) -> Optional[ModelType]:
         """
         Soft delete by setting the 'deleted_at' timestamp.
         """
-        obj = self.db.query(self.model).filter(self.model.id == id).first()
-        if obj and hasattr(obj, "deleted_at"):
-            obj.deleted_at = datetime.now(timezone.utc)
-            self.db.add(obj)
-            self.db.commit()
-            self.db.refresh(obj)
-            return obj
-        return None
+        with self.transaction():
+            obj = self.db.query(self.model).filter(self.model.id == id).first()
+            if obj and hasattr(obj, "deleted_at"):
+                obj.deleted_at = datetime.now(timezone.utc)
+                self.db.add(obj)
+                self.db.flush()
+                self.db.refresh(obj)
+                return obj
+            return None
 
     def delete_multi(self, ids: List[int]) -> int:
         """
@@ -315,30 +288,17 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if not updates:
             return 0
 
-        # Counter to track how many rows were updated
-        updated_count = 0
+        with self.transaction():
+            updated_count = 0
+            for update_data in updates:
+                if 'id' not in update_data:
+                    continue
 
-        # Loop through each dictionary in the updates list
-        for update_data in updates:
-            # If 'id' is not present in the dictionary, skip this update
-            if 'id' not in update_data:
-                continue
+                obj_id = update_data.pop('id')
+                result = self.db.query(self.model).filter(self.model.id == obj_id).update(update_data)
+                updated_count += result
 
-            # Remove and store the 'id' value from the dictionary
-            obj_id = update_data.pop('id')
-
-            # Run an update query on the model where the id matches
-            # The remaining keys in update_data will be used as updated fields
-            result = self.db.query(self.model).filter(self.model.id == obj_id).update(update_data)
-
-            # 'result' returns the number of rows updated (0 or 1), so we add it to the counter
-            updated_count += result
-
-        # Commit all the changes to the database
-        self.db.commit()
-
-        # Return the total number of rows updated
-        return updated_count
+            return updated_count
 
 
     def get_with_pagination(self, skip: int = 0, limit: int = 10, **filters) -> Tuple[List[ModelType], int]:
