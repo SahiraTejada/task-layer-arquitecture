@@ -33,13 +33,13 @@ class AuthService(BaseService):
         
         
         # Check uniqueness using BaseService method
-        self.check_resource_not_exists(
+        self.check_resource_not_exist_or_raise_duplicate(
             lambda: self.user_repository.exists_by_email(email),
             "User",
             "email",
             email
         )
-        self.check_resource_not_exists(
+        self.check_resource_not_exist_or_raise_duplicate(
             lambda: self.user_repository.exists_by_username(username),
             "User",
             "username",
@@ -53,7 +53,7 @@ class AuthService(BaseService):
             self.logger.info(f"User created successfully with ID: {db_user.id}")
             return db_user
         
-        db_user = self.execute_in_transaction(create_operation)
+        db_user = self.execute_operation_within_transaction(create_operation)
         return UserResponse.model_validate(db_user)
     
     def authenticate_user(self, login_data: UserLogin) -> UserResponse:
@@ -125,7 +125,7 @@ class AuthService(BaseService):
             self.logger.info(f"Password changed successfully for user {valid_user_id}")
             return SuccessResponseSchema(message="Password updated successfully")
         
-        return self.execute_in_transaction(update_operation)
+        return self.execute_operation_within_transaction(update_operation)
     
     
     def _prepare_user_data(self, user_data: UserCreate, email: str = None, username: str = None) -> Dict[str, Any]:

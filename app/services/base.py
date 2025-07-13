@@ -47,7 +47,7 @@ class BaseService(ABC):
     
     # ========== RESOURCE UTILITY METHODS ==========
     
-    def get_resource_or_raise(
+    def get_resource_or_raise_not_found(
         self, 
         resource_id: Any, 
         get_func: Callable[[Any], Optional[T]], 
@@ -69,7 +69,7 @@ class BaseService(ABC):
                 details={"resource_id": str(resource_id), "error": str(e)}
             )
     
-    def check_resource_not_exists(
+    def check_resource_not_exist_or_raise_duplicate(
         self, 
         check_func: Callable[[], bool], 
         resource_type: str,
@@ -158,7 +158,7 @@ class BaseService(ABC):
     
     # ========== TRANSACTION METHODS ==========
     
-    def commit_or_raise(self) -> None:
+    def commit_transaction_or_raise_error(self) -> None:
         """Commit current transaction or raise DatabaseError"""
         try:
             self.db.commit()
@@ -171,7 +171,7 @@ class BaseService(ABC):
                 details={"error": str(e)}
             )
     
-    def safe_rollback(self) -> None:
+    def safely_rollback_transaction_without_exceptions(self) -> None:
         """Safely rollback current transaction without raising exceptions"""
         try:
             self.db.rollback()
@@ -179,14 +179,14 @@ class BaseService(ABC):
         except Exception as e:
             self.logger.error(f"Transaction rollback failed: {e}")
     
-    def execute_in_transaction(self, operation: Callable[[], T]) -> T:
+    def execute_operation_within_transaction(self, operation: Callable[[], T]) -> T:
         """Execute operation in transaction with automatic rollback on error"""
         try:
             result = operation()
-            self.commit_or_raise()
+            self.commit_transaction_or_raise_error()
             return result
         except Exception as e:
-            self.safe_rollback()
+            self.safely_rollback_transaction_without_exceptions()
             if isinstance(e, (ValidationError, ResourceNotFoundError, DuplicateResourceError, DatabaseError)):
                 raise
             # Convert unexpected exceptions to DatabaseError
@@ -304,7 +304,7 @@ class BaseService(ABC):
             
             return created_items
         
-        return self.execute_in_transaction(batch_operation)
+        return self.execute_operation_within_transaction(batch_operation)
     
     # ========== SEARCH AND FILTER UTILITIES ==========
     

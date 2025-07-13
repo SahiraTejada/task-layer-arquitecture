@@ -45,7 +45,7 @@ class UserService(BaseService):
         valid_user_id = self.validate_id_parameter(user_id, "user_id")
         
         # Use BaseService method for consistent error handling
-        user = self.get_resource_or_raise(
+        user = self.get_resource_or_raise_not_found(
             valid_user_id,
             self.user_repository.get,
             "User"
@@ -61,7 +61,7 @@ class UserService(BaseService):
         valid_email = self.validate_email_format(email)
         
         # Use BaseService method for consistent error handling
-        user = self.get_resource_or_raise(
+        user = self.get_resource_or_raise_not_found(
             valid_email,
             self.user_repository.get_by_email,
             "User"
@@ -77,7 +77,7 @@ class UserService(BaseService):
         valid_username = self.validate_username(username)
         
         # Use BaseService method for consistent error handling
-        user = self.get_resource_or_raise(
+        user = self.get_resource_or_raise_not_found(
             valid_username,
             self.user_repository.get_by_username,
             "User"
@@ -91,7 +91,7 @@ class UserService(BaseService):
         
         # Validate ID and get user
         valid_user_id = self.validate_id_parameter(user_id, "user_id")
-        user = self.get_resource_or_raise(
+        user = self.get_resource_or_raise_not_found(
             valid_user_id,
             self.user_repository.get,
             "User"
@@ -179,7 +179,7 @@ class UserService(BaseService):
         valid_user_id = self.validate_id_parameter(user_id, "user_id")
         
         # Get existing user
-        existing_user = self.get_resource_or_raise(
+        existing_user = self.get_resource_or_raise_not_found(
             valid_user_id,
             self.user_repository.get,
             "User"
@@ -209,7 +209,7 @@ class UserService(BaseService):
             logger.info(f"User {valid_user_id} updated successfully")
             return updated_user
         
-        updated_user = self.execute_in_transaction(update_operation)
+        updated_user = self.execute_operation_within_transaction(update_operation)
         return UserResponse.model_validate(updated_user)
 
     def delete_user(self, user_id: int) -> UserResponse:
@@ -220,7 +220,7 @@ class UserService(BaseService):
         valid_user_id = self.validate_id_parameter(user_id, "user_id")
         
         # Check if user exists
-        existing_user = self.get_resource_or_raise(
+        existing_user = self.get_resource_or_raise_not_found(
             valid_user_id,
             self.user_repository.get,
             "User"
@@ -245,7 +245,7 @@ class UserService(BaseService):
             logger.info(f"User {valid_user_id} deleted successfully")
             return deleted_user
         
-        deleted_user = self.execute_in_transaction(delete_operation)
+        deleted_user = self.execute_operation_within_transaction(delete_operation)
         return UserResponse.model_validate(deleted_user)
 
     def bulk_update_users(self, bulk_data: UserBulkUpdate) -> int:
@@ -302,7 +302,7 @@ class UserService(BaseService):
             logger.info(f"Bulk update completed: {updated_count} users updated")
             return updated_count
         
-        return self.execute_in_transaction(bulk_update_operation)
+        return self.execute_operation_within_transaction(bulk_update_operation)
 
     def get_user_count(self, filters: Optional[UserFilters] = None) -> int:
         """Get total count of users matching optional filters"""
@@ -471,7 +471,7 @@ class UserService(BaseService):
     def _check_update_conflicts(self, user_id: int, update_dict: Dict[str, Any]) -> None:
         """Check for email/username conflicts during update using BaseService"""
         if 'email' in update_dict:
-            self.check_resource_not_exists(
+            self.check_resource_not_exist_or_raise_duplicate(
                 lambda: self.user_repository.exists_by_email(update_dict['email'], exclude_id=user_id),
                 "User",
                 "email",
@@ -479,7 +479,7 @@ class UserService(BaseService):
             )
         
         if 'username' in update_dict:
-            self.check_resource_not_exists(
+            self.check_resource_not_exist_or_raise_duplicate(
                 lambda: self.user_repository.exists_by_username(update_dict['username'], exclude_id=user_id),
                 "User", 
                 "username",
