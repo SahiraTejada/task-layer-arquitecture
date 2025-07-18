@@ -29,6 +29,7 @@ get_auth_service = get_service(AuthService)
     "/register",
     responses={
         201: ResponseDocs.created_201(UserResponse, "User created successfully"),
+        400: ResponseDocs.validation_error_400(),
         409: ResponseDocs.conflict_409("User"),
         **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
     },
@@ -88,8 +89,11 @@ async def authenticate_user(
 
 @auth_router.put(
     "/change-password",
-        responses={
-        200: ResponseDocs.success_200(SuccessResponseSchema, "Password updated successfully"),
+    responses={
+        200: ResponseDocs.success_200(
+            SuccessResponseSchema, "Password updated successfully"
+        ),
+        400: ResponseDocs.validation_error_400(),
         401: ResponseDocs.unauthorized_401(),
         **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
     },

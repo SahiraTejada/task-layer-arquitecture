@@ -257,7 +257,6 @@ class ResponseDocs:
     def standard_responses(cls, include_auth: bool = True, resource_name: str = "Resource"):
         """Get standard response documentation set."""
         responses = {
-            400: cls.validation_error_400(),
             404: cls.not_found_404(resource_name),
             422: cls.unprocessable_entity_422(),
             500: cls.internal_server_error_500(),

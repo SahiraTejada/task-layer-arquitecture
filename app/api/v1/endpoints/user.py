@@ -1,7 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-
+from app.api.__deps import get_service
 from app.config.database import get_db
 from app.services.user_service import UserService
 from app.schemas.user import (
@@ -19,18 +18,21 @@ from app.utils.exceptions import (
     AppValidationError,
     ServiceError,
 )
+from app.utils.response_docs import ResponseDocs
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
 
 
-def get_user_service(db: Session = Depends(get_db)) -> UserService:
-    """Dependency to get UserService instance."""
-    return UserService(db)
+get_user_service = get_service(UserService)
 
 
 @users_router.get(
     "/{user_id}",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User retrieved successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get user by ID",
     description="Retrieve a specific user by their ID.",
 )
@@ -40,26 +42,26 @@ async def get_user(
 ):
     """
     Get a specific user by ID.
-    
+
     - **user_id**: The ID of the user to retrieve
     """
     try:
         return user_service.get_by_id(user_id)  # Using base service method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/email/{email}",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User retrieved successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get user by email",
     description="Retrieve a user by their email address.",
 )
@@ -69,26 +71,26 @@ async def get_user_by_email(
 ):
     """
     Get a user by email address.
-    
+
     - **email**: The email address of the user to retrieve
     """
     try:
         return user_service.get_by_email(email)  # User-specific method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/username/{username}",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User retrieved successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get user by username",
     description="Retrieve a user by their username.",
 )
@@ -98,26 +100,28 @@ async def get_user_by_username(
 ):
     """
     Get a user by username.
-    
+
     - **username**: The username of the user to retrieve
     """
     try:
         return user_service.get_by_username(username)  # User-specific method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/{user_id}/tasks",
-    response_model=UserWithTasksResponse,
+    responses={
+        200: ResponseDocs.success_200(
+            UserWithTasksResponse, "User with tasks retrieved successfully."
+        ),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get user with tasks",
     description="Retrieve a user along with their associated tasks.",
 )
@@ -127,72 +131,87 @@ async def get_user_with_tasks(
 ):
     """
     Get a user with their associated tasks.
-    
+
     - **user_id**: The ID of the user to retrieve with tasks
     """
     try:
         return user_service.get_with_tasks(user_id)  # Updated method name
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/",
-    response_model=List[UserResponse],
+    responses={
+        200: ResponseDocs.success_200(
+            List[UserResponse], "Users retrieved successfully."
+        ),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get all users",
     description="Retrieve all users with basic pagination.",
 )
 async def get_all_users(
     skip: int = Query(0, ge=0, description="Number of users to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of users to return"),
+    limit: int = Query(
+        100, ge=1, le=1000, description="Maximum number of users to return"
+    ),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Get all users with pagination.
-    
+
     - **skip**: Number of users to skip (default: 0)
     - **limit**: Maximum number of users to return (default: 100, max: 1000)
     """
     try:
         return user_service.get_all(skip=skip, limit=limit)  # Using base service method
     except AppValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/paginated/list",
-    response_model=PaginatedResponse[UserResponse],
+    responses={
+        200: ResponseDocs.success_200(
+            PaginatedResponse[UserResponse],
+            "Users with advanced pagination retrieved successfully.",
+        ),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get users with advanced pagination",
     description="Retrieve users with advanced pagination and filtering options.",
 )
 async def get_users_paginated(
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(10, ge=1, le=100, description="Maximum number of users to return per page"),
+    limit: int = Query(
+        10, ge=1, le=100, description="Maximum number of users to return per page"
+    ),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    email_contains: Optional[str] = Query(None, description="Filter by email containing text"),
-    username_contains: Optional[str] = Query(None, description="Filter by username containing text"),
-    full_name_contains: Optional[str] = Query(None, description="Filter by full name containing text"),
+    email_contains: Optional[str] = Query(
+        None, description="Filter by email containing text"
+    ),
+    username_contains: Optional[str] = Query(
+        None, description="Filter by username containing text"
+    ),
+    full_name_contains: Optional[str] = Query(
+        None, description="Filter by full name containing text"
+    ),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Get users with advanced pagination and filtering.
-    
+
     - **page**: Page number (default: 1)
     - **limit**: Maximum number of users to return per page (default: 10, max: 100)
     - **is_active**: Filter by active status
@@ -203,7 +222,7 @@ async def get_users_paginated(
     try:
         # Create pagination request
         pagination = PaginationRequest(page=page, limit=limit)
-        
+
         # Create filters object
         filters = UserFilters(
             is_active=is_active,
@@ -211,24 +230,26 @@ async def get_users_paginated(
             username_contains=username_contains,
             full_name_contains=full_name_contains,
         )
-        
-        return user_service.get_filtered_paginated(pagination, filters)  # Updated method
-        
+
+        return user_service.get_filtered_paginated(
+            pagination, filters
+        )  # Updated method
+
     except AppValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.put(
     "/{user_id}",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User updated successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Update user",
     description="Update user information by ID.",
 )
@@ -239,37 +260,31 @@ async def update_user(
 ):
     """
     Update user information.
-    
+
     - **user_id**: The ID of the user to update
     - **user_data**: Updated user information
     """
     try:
         return user_service.update(user_id, user_data)  # Using base service method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except UserAlreadyExistsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except AppValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except (DatabaseError, ServiceError) as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.delete(
     "/{user_id}",
-    response_model=UserResponse,
+    responses={
+        200: ResponseDocs.success_200(UserResponse, "User deleted successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Delete user",
     description="Soft delete a user by ID.",
 )
@@ -279,25 +294,18 @@ async def delete_user(
 ):
     """
     Soft delete a user.
-    
+
     - **user_id**: The ID of the user to delete
     """
     try:
         return user_service.delete(user_id)  # Using base service method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except AppValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except (DatabaseError, ServiceError) as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -313,39 +321,50 @@ async def bulk_update_users(
 ):
     """
     Bulk update multiple users.
-    
+
     - **user_ids**: List of user IDs to update
     - **update_data**: Data to update for all specified users
     """
     try:
-        updated_count = user_service.bulk_update_users(bulk_data)  # User-specific method
+        updated_count = user_service.bulk_update_users(
+            bulk_data
+        )  # User-specific method
         return {
             "message": f"Successfully updated {updated_count} users",
-            "updated_count": updated_count
+            "updated_count": updated_count,
         }
     except (DatabaseError, ServiceError) as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
 @users_router.get(
     "/count/total",
-    response_model=dict,
+    responses={
+        200: ResponseDocs.success_200(dict, "Get user count successfully."),
+        401: ResponseDocs.unauthorized_401(),
+        **ResponseDocs.standard_responses(include_auth=False, resource_name="User"),
+    },
     summary="Get user count",
     description="Get the total count of users with optional filters.",
 )
 async def get_user_count(
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    email_contains: Optional[str] = Query(None, description="Filter by email containing text"),
-    username_contains: Optional[str] = Query(None, description="Filter by username containing text"),
-    full_name_contains: Optional[str] = Query(None, description="Filter by full name containing text"),
+    email_contains: Optional[str] = Query(
+        None, description="Filter by email containing text"
+    ),
+    username_contains: Optional[str] = Query(
+        None, description="Filter by username containing text"
+    ),
+    full_name_contains: Optional[str] = Query(
+        None, description="Filter by full name containing text"
+    ),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Get total count of users with optional filters.
-    
+
     - **is_active**: Filter by active status
     - **email_contains**: Filter by email containing text
     - **username_contains**: Filter by username containing text
@@ -358,13 +377,14 @@ async def get_user_count(
             username_contains=username_contains,
             full_name_contains=full_name_contains,
         )
-        
-        count = user_service.count(**filters.model_dump(exclude_none=True))  # Using base service method
+
+        count = user_service.count(
+            **filters.model_dump(exclude_none=True)
+        )  # Using base service method
         return {"total_users": count}
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -380,7 +400,7 @@ async def check_user_exists(
 ):
     """
     Check if a user exists by ID.
-    
+
     - **user_id**: The ID of the user to check
     """
     try:
@@ -388,8 +408,7 @@ async def check_user_exists(
         return {"exists": exists}
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -401,12 +420,14 @@ async def check_user_exists(
 )
 async def check_email_exists(
     email: str,
-    exclude_id: Optional[int] = Query(None, description="User ID to exclude from check"),
+    exclude_id: Optional[int] = Query(
+        None, description="User ID to exclude from check"
+    ),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Check if an email address is already taken.
-    
+
     - **email**: The email address to check
     - **exclude_id**: User ID to exclude from the check (useful for updates)
     """
@@ -422,12 +443,14 @@ async def check_email_exists(
 )
 async def check_username_exists(
     username: str,
-    exclude_id: Optional[int] = Query(None, description="User ID to exclude from check"),
+    exclude_id: Optional[int] = Query(
+        None, description="User ID to exclude from check"
+    ),
     user_service: UserService = Depends(get_user_service),
 ):
     """
     Check if a username is already taken.
-    
+
     - **username**: The username to check
     - **exclude_id**: User ID to exclude from the check (useful for updates)
     """
@@ -436,6 +459,7 @@ async def check_username_exists(
 
 
 # Additional endpoints leveraging the new BaseService capabilities
+
 
 @users_router.get(
     "/active/list",
@@ -453,8 +477,7 @@ async def get_active_users(
         return user_service.get_active_users()  # User-specific method
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -470,20 +493,16 @@ async def activate_user(
 ):
     """
     Activate a user account.
-    
+
     - **user_id**: The ID of the user to activate
     """
     try:
         return user_service.activate_user(user_id)  # User-specific method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
 
@@ -499,18 +518,14 @@ async def deactivate_user(
 ):
     """
     Deactivate a user account.
-    
+
     - **user_id**: The ID of the user to deactivate
     """
     try:
         return user_service.deactivate_user(user_id)  # User-specific method
     except UserNotFoundError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ServiceError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
