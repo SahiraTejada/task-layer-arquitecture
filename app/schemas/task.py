@@ -13,7 +13,7 @@ class TaskBase(BaseModel):
     status: Optional[TaskStatus] = Field(default=TaskStatus.PENDING, description="Current status of the task")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Revisar informe",
                 "description": "Analizar el informe trimestral",
@@ -43,7 +43,7 @@ class TaskResponse(TaskBase):
     tags: List[TagResponse] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class TaskListResponse(PaginatedResponse[TaskResponse]):
     pass

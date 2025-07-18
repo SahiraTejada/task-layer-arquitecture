@@ -8,7 +8,7 @@ class TagBase(BaseModel):
     color: TagColorEnum = Field(..., description="Color of the tag")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "Urgent",
                 "color": "red"
@@ -29,7 +29,7 @@ class TagRequest(BaseModel):
 class TagResponse(TagBase):
     id: int = Field(..., description="Tag ID")
     class Config:
-        orm_mode = True
+        from_attributes = True
     
 class TagListResponse(PaginatedResponse[TagResponse]):
     pass

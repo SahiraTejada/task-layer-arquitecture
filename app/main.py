@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
-#from app.api.v1.router import api_router
+from app.api.v1.router import api_router
+from app.core.exception_handlers import setup_exception_handlers
 from app.models import __all__
 from app.config.database import engine, Base
 
@@ -16,6 +17,8 @@ app = FastAPI(
 )
 
 
+setup_exception_handlers(app)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
@@ -26,7 +29,10 @@ app.add_middleware(
 )
 
 # Incluir routers
-#app.include_router(api_router, prefix="/api/v1")
+
+app = FastAPI()
+
+app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
