@@ -50,7 +50,7 @@ class Tag(BaseModel):
     )
 
     color: Mapped[TagColorEnum] = Column(
-        SQLEnum(TagColorEnum, native_enum=False),  # Enum stored as string for tag color
+        SQLEnum(TagColorEnum, native_enum=False,name="tag_color_enum"),  # Enum stored as string for tag color
         nullable=False,                            # Required field
         default=TagColorEnum.BLUE                   # Default color value
     )

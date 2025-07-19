@@ -1,0 +1,12 @@
+[tool.mypy]
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[[tool.mypy.overrides]]
+module = "app.models.*"
+# Ignorar problemas comunes de SQLAlchemy
+disable_error_code = [
+    "assignment",      # obj.field = value
+    "attr-defined",    # hasattr checks
+    "call-overload",   # Column() calls
+    "var-annotated"    # Mapped annotations
+]

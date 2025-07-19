@@ -39,7 +39,7 @@ class Task(BaseModel):
     # - Can be null
 
     priority: Mapped[Optional[PriorityEnum]] = Column(
-        SQLEnum(PriorityEnum, native_enum=False),  # Store enum as string
+        SQLEnum(PriorityEnum, native_enum=False,name="priority_enum"),  # Store enum as string
         nullable=True,
         default=PriorityEnum.MEDIUM                # Default value if none is provided
     )
@@ -48,7 +48,7 @@ class Task(BaseModel):
     # - Optional field with a default value
 
     status: Mapped[TaskStatus] = Column(
-        SQLEnum(TaskStatus, native_enum=False),    # Store enum as string
+        SQLEnum(TaskStatus, native_enum=False,name="task_status_enum"),    # Store enum as string
         nullable=False,
         default=TaskStatus.PENDING                 # Default status
     )
