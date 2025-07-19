@@ -5,12 +5,12 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.task import TaskResponse
 
 class UserBase(BaseModel):
-    email: EmailStr = Field(..., description="User Email")
-    username: str = Field(..., max_length=50, min_length=3)
+    email: EmailStr = Field(description="User Email")
+    username: str = Field(max_length=50, min_length=3)
 
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8, description="Password in plain text, min 8 chars")
+    password: str = Field(min_length=8, description="Password in plain text, min 8 chars")
     
     @field_validator('password')
     def validate_password(cls, v):
@@ -28,7 +28,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    user_id:int = Field(..., description="User ID")
+    user_id:int = Field(description="User ID")
     username: Optional[str] = Field(None, max_length=50, min_length=3)
     password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
     
@@ -45,10 +45,10 @@ class UserUpdate(BaseModel):
         return v.lower() if v else v
 
 class UserResponse(BaseModel):
-    id: int = Field(..., description="User ID")
-    email: EmailStr = Field(..., description="User Email")
-    username: str = Field(..., max_length=50, min_length=3)
-    is_active: bool = Field(..., description="Is user active")
+    id: int = Field(description="User ID")
+    email: EmailStr = Field(description="User Email")
+    username: str = Field(max_length=50, min_length=3)
+    is_active: bool = Field(description="Is user active")
 
     class Config:
         from_attributes = True
@@ -59,14 +59,14 @@ class UserWithTasksResponse(UserResponse):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr = Field(..., description="User email")
-    password: str = Field(..., description="User password")
+    email: EmailStr = Field(description="User email")
+    password: str = Field(description="User password")
     
     
 class UserChangePassword(BaseModel):
-    user_id: int = Field(..., description="User ID")
-    old_password: str = Field(..., description="Current password")
-    new_password: str = Field(..., min_length=8, description="New password")
+    user_id: int = Field(description="User ID")
+    old_password: str = Field(description="Current password")
+    new_password: str = Field(min_length=8, description="New password")
     
     @field_validator('new_password')
     def validate_new_password(cls, v):
@@ -83,8 +83,8 @@ class UserFilters(BaseModel):
 
 class UserBulkUpdate(BaseModel):
     """Schema for bulk user updates."""
-    user_ids: List[int] = Field(..., min_items=1, description="List of user IDs to update")
-    update_data: UserUpdate = Field(..., description="Data to update for all users")
+    user_ids: List[int] = Field(min_items=1, description="List of user IDs to update")
+    update_data: UserUpdate = Field(description="Data to update for all users")
 
 
 class UserPaginatedResponse(PaginatedResponse[UserResponse]):
@@ -92,6 +92,6 @@ class UserPaginatedResponse(PaginatedResponse[UserResponse]):
     pass   
 
 class UserSearch(BaseModel):
-    query: str = Field(..., min_length=1, description="Search query")
+    query: str = Field(min_length=1, description="Search query")
     skip: int = Field(0, ge=0, description="Number of records to skip")
     limit: int = Field(10, ge=1, le=100, description="Maximum number of records to return")
