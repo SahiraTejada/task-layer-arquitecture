@@ -5,8 +5,9 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.tag import TagResponse
 from app.utils.enum import PriorityEnum, TaskStatus
 
+
 class TaskBase(BaseModel):
-    name: str = Field(..., max_length=100, min_length=1, description="Task name (max 100 characters)")
+    name: str = Field( max_length=100, min_length=1, description="Task name (max 100 characters)")
     description: Optional[str] = Field(None, max_length=255, description="Description of the task (max 255 characters)")
     due_date: Optional[datetime] = Field(None, description="Due date for the task")
     priority: Optional[PriorityEnum] = Field(default=PriorityEnum.MEDIUM, description="Priority level of the task")
@@ -27,8 +28,8 @@ class TaskCreate(TaskBase):
     tag_ids: Optional[List[int]] = Field(default=[], description="List of tag IDs to associate with the task")
 
 
-class TaskUpdate(TaskBase):
-    id: int = Field(..., description="Task ID")
+class TaskUpdate(BaseModel):
+    id: int = Field( description="Task ID")
     name: Optional[str] = Field(None, max_length=100, min_length=1, description="Task name (max 100 characters)")
     description: Optional[str] = Field(None, max_length=255, description="Description of the task (max 255 characters)")
     due_date: Optional[datetime] = Field(None, description="Due date for the task")
@@ -36,10 +37,10 @@ class TaskUpdate(TaskBase):
     status: Optional[TaskStatus] = Field(default=TaskStatus.PENDING, description="Current status of the task")
 
 class TaskRequest(BaseModel):
-    id: int = Field(..., description="Task ID")
+    id: int = Field( description="Task ID")
 
 class TaskResponse(TaskBase):
-    id: int = Field(..., description="Task ID")
+    id: int = Field( description="Task ID")
     tags: List[TagResponse] = []
 
     class Config:

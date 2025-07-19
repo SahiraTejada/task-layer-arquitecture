@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import logging
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -8,10 +9,14 @@ from alembic import context
 from app.config.settings import settings
 from app.config.database import Base
 
+# Import all models to ensure they're registered with Base.metadata
+from app.models import *  # This ensures all models are loaded
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
+# Set the database URL from settings
 config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
@@ -19,10 +24,11 @@ config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Set up logger
+logger = logging.getLogger('alembic.env')
+
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -49,6 +55,12 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        # Include schemas if using multiple schemas
+        include_schemas=True,
+        # Compare types for better change detection
+        compare_type=True,
+        # Compare server defaults
+        compare_server_default=True,
     )
 
     with context.begin_transaction():
@@ -62,15 +74,30 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Create engine configuration
+    configuration = config.get_section(config.config_ini_section, {})
+    
+    # Override with settings if needed
+    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            # Include schemas if using multiple schemas
+            include_schemas=True,
+            # Compare types for better change detection
+            compare_type=True,
+            # Compare server defaults
+            compare_server_default=True,
+            # Render as batch operations for SQLite compatibility
+            render_as_batch=True,
         )
 
         with context.begin_transaction():

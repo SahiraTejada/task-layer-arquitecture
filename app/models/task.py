@@ -1,6 +1,8 @@
 # Import required SQLAlchemy components
+from typing import Optional
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Enum as SQLEnum
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped
 
 # Import custom enums for task priority and status
 from app.utils.enum import PriorityEnum, TaskStatus
@@ -36,7 +38,7 @@ class Task(BaseModel):
     # - DateTime type
     # - Can be null
 
-    priority = Column(
+    priority: Mapped[Optional[PriorityEnum]] = Column(
         SQLEnum(PriorityEnum, native_enum=False),  # Store enum as string
         nullable=True,
         default=PriorityEnum.MEDIUM                # Default value if none is provided
@@ -45,7 +47,7 @@ class Task(BaseModel):
     # - Uses custom enum PriorityEnum (LOW, MEDIUM, HIGH)
     # - Optional field with a default value
 
-    status = Column(
+    status: Mapped[TaskStatus] = Column(
         SQLEnum(TaskStatus, native_enum=False),    # Store enum as string
         nullable=False,
         default=TaskStatus.PENDING                 # Default status

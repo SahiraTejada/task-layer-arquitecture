@@ -23,12 +23,10 @@ class UserCreate(UserBase):
         if not v.isalnum() and '_' not in v:
             raise ValueError('Username must contain only alphanumeric characters and underscores')
         return v.lower()
-    
-
 
 
 class UserUpdate(BaseModel):
-    user_id:int = Field(description="User ID")
+    user_id: int = Field(description="User ID")
     username: Optional[str] = Field(None, max_length=50, min_length=3)
     password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
     
@@ -83,7 +81,7 @@ class UserFilters(BaseModel):
 
 class UserBulkUpdate(BaseModel):
     """Schema for bulk user updates."""
-    user_ids: List[int] = Field(min_items=1, description="List of user IDs to update")
+    user_ids: List[int] = Field(description="List of user IDs to update", min_length=1)
     update_data: UserUpdate = Field(description="Data to update for all users")
 
 
