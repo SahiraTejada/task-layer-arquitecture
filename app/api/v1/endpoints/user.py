@@ -1,7 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.__deps import get_service
-from app.config.database import get_db
 from app.services.user_service import UserService
 from app.schemas.user import (
     UserUpdate,
