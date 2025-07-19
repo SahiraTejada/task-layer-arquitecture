@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.api.v1.router import api_router
 from app.core.exception_handlers import setup_exception_handlers
-from app.models import __all__
+from app.models import __all__  # noqa: F401
 from app.config.database import engine, Base
 
 
