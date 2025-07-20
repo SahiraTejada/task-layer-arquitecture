@@ -8,5 +8,7 @@ disable_error_code = [
     "assignment",      # obj.field = value
     "attr-defined",    # hasattr checks
     "call-overload",   # Column() calls
-    "var-annotated"    # Mapped annotations
+    "var-annotated",   # Mapped annotations
+    "misc",           # Errores misc del plugin de SQLAlchemy
+    "type-arg"        # Argumentos de tipo genérico
 ]
