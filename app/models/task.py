@@ -38,16 +38,16 @@ class Task(BaseModel):
     # - DateTime type
     # - Can be null
 
-    priority: Mapped[Optional[PriorityEnum]] = Column(
+    priority = Column(
         SQLEnum(PriorityEnum, native_enum=False,name="priority_enum"),  # Store enum as string
         nullable=True,
-        default=PriorityEnum.MEDIUM                # Default value if none is provided
+        default=PriorityEnum.LOW                # Default value if none is provided
     )
     # Priority of the task:
     # - Uses custom enum PriorityEnum (LOW, MEDIUM, HIGH)
     # - Optional field with a default value
 
-    status: Mapped[TaskStatus] = Column(
+    status = Column(
         SQLEnum(TaskStatus, native_enum=False,name="task_status_enum"),    # Store enum as string
         nullable=False,
         default=TaskStatus.PENDING                 # Default status

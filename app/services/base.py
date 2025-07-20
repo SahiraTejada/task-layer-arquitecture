@@ -15,9 +15,10 @@ from app.utils.exceptions import (
 
 # Type variables
 ModelType = TypeVar("ModelType", bound=GeneralBaseModel)
-CreateSchemaType = TypeVar("CreateSchemaType")
-UpdateSchemaType = TypeVar("UpdateSchemaType")
-ResponseSchemaType = TypeVar("ResponseSchemaType")
+CreateSchemaType = TypeVar("CreateSchemaType", bound=GeneralBaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=GeneralBaseModel)
+ResponseSchemaType = TypeVar("ResponseSchemaType", bound=GeneralBaseModel) 
+
 
 logger = logging.getLogger(__name__)
 

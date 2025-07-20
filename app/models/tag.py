@@ -5,32 +5,36 @@ from sqlalchemy.orm import Mapped
 
 # Import the Base class for declarative models (usually from declarative_base)
 from app.config.database import Base
+
 # Import custom Enum for tag colors
 from app.utils.enum import TagColorEnum
+
 # Import BaseModel with common fields (id, timestamps, etc.)
 from .base import BaseModel
 
 
 # Association table to establish many-to-many relationship between tasks and tags
 task_tag_association = Table(
-    "task_tag_association",      # Name of the association table in the DB
-    Base.metadata,               # Metadata object to register the table
-
+    "task_tag_association",  # Name of the association table in the DB
+    Base.metadata,  # Metadata object to register the table
     # Foreign key column linking to 'tasks' table's 'id' column
     Column(
-        "task_id",              # Column name in association table
-        Integer,                # Integer type
-        ForeignKey("tasks.id", ondelete="CASCADE"),  # Delete association if task is deleted
-        primary_key=True        # Part of the composite primary key
+        "task_id",  # Column name in association table
+        Integer,  # Integer type
+        ForeignKey(
+            "tasks.id", ondelete="CASCADE"
+        ),  # Delete association if task is deleted
+        primary_key=True,  # Part of the composite primary key
     ),
-
     # Foreign key column linking to 'tags' table's 'id' column
     Column(
-        "tag_id",               # Column name in association table
-        Integer,                # Integer type
-        ForeignKey("tags.id", ondelete="CASCADE"),   # Delete association if tag is deleted
-        primary_key=True        # Part of the composite primary key
-    )
+        "tag_id",  # Column name in association table
+        Integer,  # Integer type
+        ForeignKey(
+            "tags.id", ondelete="CASCADE"
+        ),  # Delete association if tag is deleted
+        primary_key=True,  # Part of the composite primary key
+    ),
 )
 
 
@@ -43,22 +47,24 @@ class Tag(BaseModel):
     # --------------------
 
     name = Column(
-        String(50),            # String column with max length 50
-        unique=True,           # Tag names must be unique
-        index=True,            # Indexed for faster lookups
-        nullable=False         # Required field
+        String(50),  # String column with max length 50
+        unique=True,  # Tag names must be unique
+        index=True,  # Indexed for faster lookups
+        nullable=False,  # Required field
     )
 
-    color: Mapped[TagColorEnum] = Column(
-        SQLEnum(TagColorEnum, native_enum=False,name="tag_color_enum"),  # Enum stored as string for tag color
-        nullable=False,                            # Required field
-        default=TagColorEnum.BLUE                   # Default color value
+    color = Column(
+        SQLEnum(
+            TagColorEnum, native_enum=False, name="tag_color_enum"
+        ),  # Enum stored as string for tag color
+        nullable=False,  # Required field
+        default=TagColorEnum.BLUE,  # Default color value
     )
 
     user_id = Column(
-        Integer,                 # Integer type column
+        Integer,  # Integer type column
         ForeignKey("users.id", ondelete="CASCADE"),  # Foreign key to the 'users' table
-        nullable=False           # Required field - tag must belong to a user
+        nullable=False,  # Required field - tag must belong to a user
     )
 
     # --------------------
@@ -66,12 +72,12 @@ class Tag(BaseModel):
     # --------------------
 
     user = relationship(
-        "User",                  # Related model is User
-        back_populates="tags"    # Corresponds to 'tags' attribute on User model
+        "User",  # Related model is User
+        back_populates="tags",  # Corresponds to 'tags' attribute on User model
     )
 
     tasks = relationship(
-        "Task",                          # Related model is Task
+        "Task",  # Related model is Task
         secondary=task_tag_association,  # Uses the many-to-many association table
-        back_populates="tags"            # Corresponds to 'tags' attribute on Task model
+        back_populates="tags",  # Corresponds to 'tags' attribute on Task model
     )
