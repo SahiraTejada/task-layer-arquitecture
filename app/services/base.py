@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, List, Dict, Any, Union
+from typing import Generic, TypeVar, Type, List, Dict, Any
 from abc import ABC
 import logging
 from datetime import datetime, timezone
