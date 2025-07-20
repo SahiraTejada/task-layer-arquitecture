@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 import logging
+from typing import Union, Optional
 
 from app.utils.exceptions import (
     AppValidationError,
@@ -18,11 +19,11 @@ from app.schemas.common import ErrorResponseSchema
 logger = logging.getLogger(__name__)
 
 
-def setup_exception_handlers(app: FastAPI):
+def setup_exception_handlers(app: FastAPI) -> None:
     """Setup all exception handlers for the FastAPI app."""
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         """Handle FastAPI HTTP exceptions."""
         logger.warning(f"HTTP exception: {exc.status_code} - {exc.detail}")
         
@@ -37,12 +38,12 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         """Handle Pydantic validation errors."""
         logger.warning(f"Validation error: {exc.errors()}")
         
         # Extract field name from the first error
-        field_name = None
+        field_name: Optional[Union[str, int]] = None
         if exc.errors():
             field_path = exc.errors()[0].get('loc', [])
             field_name = field_path[-1] if field_path else None
@@ -60,7 +61,7 @@ def setup_exception_handlers(app: FastAPI):
 
     # Custom application exceptions
     @app.exception_handler(NotFoundError)
-    async def not_found_exception_handler(request: Request, exc: NotFoundError):
+    async def not_found_exception_handler(request: Request, exc: NotFoundError) -> JSONResponse:
         """Handle not found errors."""
         logger.warning(f"Not found: {exc.message}")
         
@@ -75,7 +76,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(AppValidationError)
-    async def app_validation_error_handler(request: Request, exc: AppValidationError):
+    async def app_validation_error_handler(request: Request, exc: AppValidationError) -> JSONResponse:
         """Handle custom validation errors."""
         logger.warning(f"App validation error: {exc.message}")
         
@@ -90,7 +91,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(AuthenticationError)
-    async def authentication_error_handler(request: Request, exc: AuthenticationError):
+    async def authentication_error_handler(request: Request, exc: AuthenticationError) -> JSONResponse:
         """Handle authentication errors."""
         logger.warning(f"Authentication error: {exc.message}")
         
@@ -105,7 +106,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(AuthorizationError)
-    async def authorization_error_handler(request: Request, exc: AuthorizationError):
+    async def authorization_error_handler(request: Request, exc: AuthorizationError) -> JSONResponse:
         """Handle authorization errors."""
         logger.warning(f"Authorization error: {exc.message}")
         
@@ -120,7 +121,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(UserAlreadyExistsError)
-    async def user_exists_error_handler(request: Request, exc: UserAlreadyExistsError):
+    async def user_exists_error_handler(request: Request, exc: UserAlreadyExistsError) -> JSONResponse:
         """Handle user already exists errors."""
         logger.warning(f"User exists error: {exc.message}")
         
@@ -135,7 +136,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(DatabaseError)
-    async def database_error_handler(request: Request, exc: DatabaseError):
+    async def database_error_handler(request: Request, exc: DatabaseError) -> JSONResponse:
         """Handle database errors."""
         logger.error(f"Database error: {exc.message}")
         
@@ -150,7 +151,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(ServiceError)
-    async def service_error_handler(request: Request, exc: ServiceError):
+    async def service_error_handler(request: Request, exc: ServiceError) -> JSONResponse:
         """Handle general service errors."""
         logger.error(f"Service error: {exc.message}")
         
@@ -165,7 +166,7 @@ def setup_exception_handlers(app: FastAPI):
         )
 
     @app.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
+    async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         """Handle all other unexpected exceptions."""
         logger.error(f"Unexpected error: {type(exc).__name__}: {str(exc)}", exc_info=True)
         

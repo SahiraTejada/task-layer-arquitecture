@@ -2,32 +2,42 @@
 Reusable response documentation templates for OpenAPI/Swagger.
 """
 
+from typing import Dict, Type, Union
+from pydantic import BaseModel
+
 from app.schemas.common import ErrorResponseSchema
+
+
+# Tipos específicos para la documentación de respuestas
+ExampleValue = Dict[str, Union[str, int]]
+Example = Dict[str, Union[str, ExampleValue]]
+Examples = Dict[str, Example]
+Content = Dict[str, Dict[str, Examples]]
+ResponseDoc = Dict[str, Union[str, Type[BaseModel], Content]]
+ResponsesDict = Dict[int, ResponseDoc]
 
 
 class ResponseDocs:
     """Standard response documentation templates."""
 
     @staticmethod
-    def success_200(model, description: str = "Operation successful"):
+    def success_200(model: Type[BaseModel], description: str = "Operation successful") -> ResponseDoc:
         """Standard 200 success response."""
         return {
             "description": description,
             "model": model,
-            
         }
 
     @staticmethod
-    def created_201(model, description: str = "Resource created successfully"):
+    def created_201(model: Type[BaseModel], description: str = "Resource created successfully") -> ResponseDoc:
         """Standard 201 created response."""
         return {
             "description": description,
             "model": model,
-          
         }
 
     @staticmethod
-    def validation_error_400():
+    def validation_error_400() -> ResponseDoc:
         """Standard 400 validation error response."""
         return {
             "description": "Validation error",
@@ -60,7 +70,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def unauthorized_401():
+    def unauthorized_401() -> ResponseDoc:
         """Standard 401 unauthorized response."""
         return {
             "description": "Authentication failed",
@@ -92,7 +102,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def forbidden_403():
+    def forbidden_403() -> ResponseDoc:
         """Standard 403 forbidden response."""
         return {
             "description": "Access forbidden",
@@ -124,7 +134,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def not_found_404(resource_name: str = "Resource"):
+    def not_found_404(resource_name: str = "Resource") -> ResponseDoc:
         """Standard 404 not found response."""
         return {
             "description": f"{resource_name} not found",
@@ -156,7 +166,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def conflict_409(resource_name: str = "Resource"):
+    def conflict_409(resource_name: str = "Resource") -> ResponseDoc:
         """Standard 409 conflict response."""
         return {
             "description": f"{resource_name} already exists",
@@ -179,7 +189,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def unprocessable_entity_422():
+    def unprocessable_entity_422() -> ResponseDoc:
         """Standard 422 validation error response."""
         return {
             "description": "Request validation error",
@@ -213,7 +223,7 @@ class ResponseDocs:
         }
 
     @staticmethod
-    def internal_server_error_500():
+    def internal_server_error_500() -> ResponseDoc:
         """Standard 500 internal server error response."""
         return {
             "description": "Internal server error",
@@ -254,9 +264,13 @@ class ResponseDocs:
         }
 
     @classmethod
-    def standard_responses(cls, include_auth: bool = True, resource_name: str = "Resource"):
+    def standard_responses(
+        cls, 
+        include_auth: bool = True, 
+        resource_name: str = "Resource"
+    ) -> ResponsesDict:
         """Get standard response documentation set."""
-        responses = {
+        responses: ResponsesDict = {
             404: cls.not_found_404(resource_name),
             422: cls.unprocessable_entity_422(),
             500: cls.internal_server_error_500(),

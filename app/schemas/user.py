@@ -13,13 +13,15 @@ class UserCreate(UserBase):
     password: str = Field(min_length=8, description="Password in plain text, min 8 chars")
     
     @field_validator('password')
-    def validate_password(cls, v):
+    @classmethod
+    def validate_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
         return v
     
     @field_validator('username')
-    def validate_username(cls, v):
+    @classmethod
+    def validate_username(cls, v: str) -> str:
         if not v.isalnum() and '_' not in v:
             raise ValueError('Username must contain only alphanumeric characters and underscores')
         return v.lower()
@@ -31,13 +33,15 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
     
     @field_validator('password')
-    def validate_password(cls, v):
+    @classmethod
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
         return v
     
     @field_validator('username')
-    def validate_username(cls, v):
+    @classmethod
+    def validate_username(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and not v.isalnum() and '_' not in v:
             raise ValueError('Username must contain only alphanumeric characters and underscores')
         return v.lower() if v else v
@@ -67,7 +71,8 @@ class UserChangePassword(BaseModel):
     new_password: str = Field(min_length=8, description="New password")
     
     @field_validator('new_password')
-    def validate_new_password(cls, v):
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError('New password must be at least 8 characters long')
         return v    
