@@ -1,14 +1,55 @@
 [tool.mypy]
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
+# Configuración general
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
 [[tool.mypy.overrides]]
 module = "app.models.*"
-# Ignorar problemas comunes de SQLAlchemy
+# Ignorar problemas comunes de SQLAlchemy en modelos
 disable_error_code = [
     "assignment",      # obj.field = value
     "attr-defined",    # hasattr checks
     "call-overload",   # Column() calls
     "var-annotated",   # Mapped annotations
     "misc",           # Errores misc del plugin de SQLAlchemy
-    "type-arg"        # Argumentos de tipo genérico
+    "type-arg",       # Argumentos de tipo genérico
+    "no-untyped-def"  # Métodos generados automáticamente
 ]
+
+[[tool.mypy.overrides]]
+module = "app.repositories.*"
+# Configuración para repositorios que usan SQLAlchemy
+disable_error_code = [
+    "attr-defined",    # Atributos de session y query
+    "operator",       # Operadores de SQLAlchemy como ==, !=
+    "assignment",     # Asignaciones en queries
+    "call-overload",  # Métodos sobrecargados de Session
+    "arg-type"        # Tipos de argumentos en queries
+]
+
+[[tool.mypy.overrides]]
+module = "app.database.*"
+# Configuración para módulos de base de datos
+disable_error_code = [
+    "attr-defined",
+    "call-overload",
+    "misc"
+]
+
+# Ignorar librerías sin tipos
+[[tool.mypy.overrides]]
+module = [
+    "alembic.*",
+    "sqlalchemy_utils.*",
+    "psycopg2.*"
+]
+ignore_missing_imports = true
+
+# Configuración específica para archivos de migración
+[[tool.mypy.overrides]]
+module = "alembic.versions.*"
+ignore_errors = true

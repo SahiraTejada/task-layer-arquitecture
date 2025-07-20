@@ -2,6 +2,7 @@ from typing import Generic, TypeVar, Type, List, Dict, Any
 from abc import ABC
 import logging
 from datetime import datetime, timezone
+from pydantic import BaseModel as PydanticBaseModel
 
 from app.repositories.base import BaseRepository
 from app.models import BaseModel as GeneralBaseModel
@@ -15,9 +16,9 @@ from app.utils.exceptions import (
 
 # Type variables
 ModelType = TypeVar("ModelType", bound=GeneralBaseModel)
-CreateSchemaType = TypeVar("CreateSchemaType", bound=GeneralBaseModel)
-UpdateSchemaType = TypeVar("UpdateSchemaType", bound=GeneralBaseModel)
-ResponseSchemaType = TypeVar("ResponseSchemaType", bound=GeneralBaseModel) 
+CreateSchemaType = TypeVar("CreateSchemaType", bound=PydanticBaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=PydanticBaseModel)
+ResponseSchemaType = TypeVar("ResponseSchemaType", bound=PydanticBaseModel) 
 
 
 logger = logging.getLogger(__name__)
