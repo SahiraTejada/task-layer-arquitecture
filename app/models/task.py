@@ -1,5 +1,4 @@
 # Import required SQLAlchemy components
-from typing import Optional
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 
