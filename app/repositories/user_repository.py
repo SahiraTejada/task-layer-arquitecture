@@ -6,7 +6,7 @@ from app.schemas.user import UserCreate, UserUpdate
 
 
 class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         super().__init__(User, db)
 
     def get_by_email(self, email: str) -> Optional[User]:

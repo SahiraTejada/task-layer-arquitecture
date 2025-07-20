@@ -32,9 +32,11 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
     Handles user operations, authentication, and validation using Pydantic schemas.
     """
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
+        # Type the repository correctly
+        self.user_repository = UserRepository(db)
         super().__init__(
-            repository=UserRepository(db),
+            repository=self.user_repository,
             response_schema=UserResponse,
             entity_name="User"
         )
@@ -46,7 +48,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.debug(f"Fetching user with email: {email}")
             
-            user = self.repository.get_by_email(email)
+            user = self.user_repository.get_by_email(email)
             if not user:
                 raise UserNotFoundError(f"User with email {email} not found")
             
@@ -63,7 +65,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.debug(f"Fetching user with username: {username}")
             
-            user = self.repository.get_by_username(username)
+            user = self.user_repository.get_by_username(username)
             if not user:
                 raise UserNotFoundError(f"User with username {username} not found")
             
@@ -138,7 +140,8 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Activating user: {user_id}")
             
-            update_data = UserUpdate(is_active=True)
+            # Create update data with proper type
+            update_data = UserUpdate(user_id=user_id, is_active=True)
             return self.update(user_id, update_data)
             
         except Exception as e:
@@ -150,7 +153,8 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Deactivating user: {user_id}")
             
-            update_data = UserUpdate(is_active=False)
+            # Create update data with proper type
+            update_data = UserUpdate(user_id=user_id, is_active=False)
             return self.update(user_id, update_data)
             
         except Exception as e:
@@ -160,16 +164,16 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
     # Utility methods
     def email_exists(self, email: str, exclude_id: Optional[int] = None) -> bool:
         """Check if email exists."""
-        return self.repository.exists_by_email(email, exclude_id)
+        return self.user_repository.exists_by_email(email, exclude_id)
 
     def username_exists(self, username: str, exclude_id: Optional[int] = None) -> bool:
         """Check if username exists."""
-        return self.repository.exists_by_username(username, exclude_id)
+        return self.user_repository.exists_by_username(username, exclude_id)
 
     def get_active_users(self) -> List[UserResponse]:
         """Get all active users."""
         try:
-            active_users = self.repository.get_active_users()
+            active_users = self.user_repository.get_active_users()
             return [UserResponse.model_validate(user) for user in active_users]
         except Exception as e:
             self.logger.error(f"Error fetching active users: {str(e)}")
@@ -190,7 +194,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         # Add any additional user-specific validation here
         self._validate_password_strength(create_data.password)
 
-    def _validate_before_update(self, entity_id: int, update_data: UserUpdate) -> None:
+    def _validate_before_update(self, entity_id: int, update_data: UserResponse) -> None:
         """Custom validation before user update."""
         # Check email uniqueness (excluding current user)
         if hasattr(update_data, 'email') and update_data.email:

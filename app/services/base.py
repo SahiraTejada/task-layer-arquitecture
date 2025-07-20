@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, List, Dict, Any
+from typing import Generic, TypeVar, Type, List, Dict, Any, Union
 from abc import ABC
 import logging
 from datetime import datetime, timezone
@@ -39,7 +39,7 @@ class BaseService(
         repository: BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType],
         response_schema: Type[ResponseSchemaType],
         entity_name: str,
-    ):
+    ) -> None:
         """
         Initialize base service.
 
@@ -94,7 +94,7 @@ class BaseService(
             raise ServiceError(f"Failed to retrieve {self.entity_name}s: {str(e)}")
 
     def get_paginated(
-        self, pagination: PaginationRequest, **filters
+        self, pagination: PaginationRequest, **filters: Any
     ) -> PaginatedResponse[ResponseSchemaType]:
         """Get entities with enhanced pagination."""
         try:
@@ -229,7 +229,7 @@ class BaseService(
                 f"Failed to check {self.entity_name} existence: {str(e)}"
             )
 
-    def count(self, **filters) -> int:
+    def count(self, **filters: Any) -> int:
         """Count entities with optional filters."""
         try:
             return self.repository.count(**filters)
@@ -256,10 +256,15 @@ class BaseService(
 
     def _prepare_create_data(self, create_data: CreateSchemaType) -> Dict[str, Any]:
         """Prepare data for creation. Override in subclasses if needed."""
+        data: Dict[str, Any]
+        
         if hasattr(create_data, "model_dump"):
             data = create_data.model_dump(exclude_unset=True)
+        elif isinstance(create_data, dict):
+            data = create_data
         else:
-            data = dict(create_data) if isinstance(create_data, dict) else create_data
+            # Fallback for other types - this should rarely happen with proper typing
+            data = dict(create_data) if hasattr(create_data, 'items') else {}
 
         # Add timestamps
         data["created_at"] = datetime.now(timezone.utc)
@@ -269,10 +274,15 @@ class BaseService(
 
     def _prepare_update_data(self, update_data: UpdateSchemaType) -> Dict[str, Any]:
         """Prepare data for update. Override in subclasses if needed."""
+        data: Dict[str, Any]
+        
         if hasattr(update_data, "model_dump"):
             data = update_data.model_dump(exclude_unset=True, exclude_none=True)
+        elif isinstance(update_data, dict):
+            data = update_data
         else:
-            data = dict(update_data) if isinstance(update_data, dict) else update_data
+            # Fallback for other types - this should rarely happen with proper typing
+            data = dict(update_data) if hasattr(update_data, 'items') else {}
 
         # Add update timestamp
         data["updated_at"] = datetime.now(timezone.utc)

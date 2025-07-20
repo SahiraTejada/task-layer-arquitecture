@@ -15,7 +15,7 @@ from app.utils.enum import TaskStatus, PriorityEnum
 # Define a repository specifically for Task-related DB operations
 class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         # Initialize with the Task model and active DB session
         super().__init__(Task, db)
 
@@ -217,7 +217,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         ).count()
 
         # Count tasks per priority level
-        priority_stats = {}
+        priority_stats: Dict[str, int] = {}
         for priority in PriorityEnum:
             priority_stats[priority.value] = base_query.filter(Task.priority == priority).count()
 
@@ -230,13 +230,17 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
             )
         ).all()
 
-        avg_completion_time = 0
+        avg_completion_time = 0.0
         if completed_with_timestamps:
-            total_time = sum([
-                (task.completed_at - task.created_at).total_seconds() / 3600
-                for task in completed_with_timestamps
-            ])
-            avg_completion_time = total_time / len(completed_with_timestamps)
+            # Calculate completion times in hours for each task
+            completion_times: List[float] = []
+            for task in completed_with_timestamps:
+                if task.completed_at and task.created_at:
+                    time_diff = (task.completed_at - task.created_at).total_seconds() / 3600
+                    completion_times.append(time_diff)
+            
+            if completion_times:
+                avg_completion_time = sum(completion_times) / len(completion_times)
 
         # Return all stats in a dictionary
         return {
@@ -308,4 +312,3 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
             self.db.refresh(task)
 
         return task
-
