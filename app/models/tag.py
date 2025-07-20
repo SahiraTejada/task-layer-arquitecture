@@ -1,7 +1,7 @@
 # Import necessary SQLAlchemy components for defining tables, columns, relationships, and enums
 from sqlalchemy import Column, Integer, String, Table, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import Mapped
+
 
 # Import the Base class for declarative models (usually from declarative_base)
 from app.config.database import Base

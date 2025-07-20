@@ -2,7 +2,7 @@
 from typing import Optional
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import Mapped
+
 
 # Import custom enums for task priority and status
 from app.utils.enum import PriorityEnum, TaskStatus
