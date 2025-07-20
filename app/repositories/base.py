@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, Optional, List, Dict, Any, Tuple, Union
+from typing import Generic, TypeVar, Type, Optional, List, Dict, Any, Tuple, Union, Iterator
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.models import BaseModel as GeneralBaseModel
 from app.schemas.common import PaginatedResponse, PaginationRequest
 from app.utils.exceptions import DatabaseError
+
 # Define type variables to be used with generics
 ModelType = TypeVar("ModelType", bound=GeneralBaseModel)       # SQLAlchemy model type
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel) # Pydantic schema for creation
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     # Generic repository class that works with any model and schemas
     
-    def __init__(self, model: Type[ModelType], db: Session):
+    def __init__(self, model: Type[ModelType], db: Session) -> None:
         """
         Initialize repository with the given SQLAlchemy model and DB session.
         """
@@ -28,34 +29,34 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.db = db
 
     @contextmanager
-    def transaction(self):
-            """Context manager for database transactions."""
-            try:
-                yield self.db
-                self.db.commit()
-            except SQLAlchemyError as e:
-                self.db.rollback()
-                logger.error(f"Database transaction failed: {str(e)}")
-                raise DatabaseError(f"Database operation failed: {str(e)}")
-            except Exception as e:
-                self.db.rollback()
-                logger.error(f"Unexpected error during transaction: {str(e)}")
-                raise DatabaseError(f"Unexpected database error: {str(e)}")
+    def transaction(self) -> Iterator[Session]:
+        """Context manager for database transactions."""
+        try:
+            yield self.db
+            self.db.commit()
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            logger.error(f"Database transaction failed: {str(e)}")
+            raise DatabaseError(f"Database operation failed: {str(e)}")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Unexpected error during transaction: {str(e)}")
+            raise DatabaseError(f"Unexpected database error: {str(e)}")
 
     def get(self, id: int) -> Optional[ModelType]:
-            """Get one record by its primary key id."""
-            try:
-                query = self.db.query(self.model).filter(self.model.id == id)
-                if hasattr(self.model, "deleted_at"):
-                    query = query.filter(self.model.deleted_at.is_(None))
-                return query.first()
-            except SQLAlchemyError as e:
-                logger.error(f"Error fetching {self.model.__name__} with ID {id}: {str(e)}")
-                raise DatabaseError(f"Failed to fetch record: {str(e)}")
-            
-        # Execute the query and return the first matching record or None if not found
+        """Get one record by its primary key id."""
+        try:
+            query = self.db.query(self.model).filter(self.model.id == id)
+            if hasattr(self.model, "deleted_at"):
+                query = query.filter(self.model.deleted_at.is_(None))
+            return query.first()
+        except SQLAlchemyError as e:
+            logger.error(f"Error fetching {self.model.__name__} with ID {id}: {str(e)}")
+            raise DatabaseError(f"Failed to fetch record: {str(e)}")
+        
+    # Execute the query and return the first matching record or None if not found
 
-    def get_multi(self, skip: int = 0, limit: int = 100, **filters) -> List[ModelType]:
+    def get_multi(self, skip: int = 0, limit: int = 100, **filters: Any) -> List[ModelType]:
         """
         Get multiple records with optional filters, skipping and limiting results.
         Excludes soft-deleted records.
@@ -264,7 +265,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             query = query.filter(self.model.deleted_at.is_(None))
         return query.first() is not None
 
-    def count(self, **filters) -> int:
+    def count(self, **filters: Any) -> int:
         """
         Count total records matching optional filters (excluding soft deleted).
         """
@@ -301,7 +302,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return updated_count
 
 
-    def get_with_pagination(self, skip: int = 0, limit: int = 10, **filters) -> Tuple[List[ModelType], int]:
+    def get_with_pagination(self, skip: int = 0, limit: int = 10, **filters: Any) -> Tuple[List[ModelType], int]:
         """
         Get records with pagination and optional filters.
         Returns a tuple: (list of items, total count).
@@ -317,7 +318,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return items, total
     
     
-    def get_paginated_response(self, pagination: PaginationRequest, **filters) -> PaginatedResponse:
+    def get_paginated_response(self, pagination: PaginationRequest, **filters: Any) -> PaginatedResponse[ModelType]:
         """
         Get paginated response with enhanced pagination metadata.
         
