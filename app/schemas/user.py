@@ -28,9 +28,12 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    user_id: int = Field(description="User ID")
+    # Made user_id optional since it's not always needed (it's provided as parameter)
+    user_id: Optional[int] = Field(None, description="User ID")
+    email: Optional[EmailStr] = Field(None, description="User Email")
     username: Optional[str] = Field(None, max_length=50, min_length=3)
     password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
+    is_active: Optional[bool] = Field(None, description="Is user active")
     
     @field_validator('password')
     @classmethod

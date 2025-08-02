@@ -140,8 +140,8 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Activating user: {user_id}")
             
-            # Create update data with proper type
-            update_data = UserUpdate(user_id=user_id, is_active=True)
+            # Create update data with proper type - now is_active is available
+            update_data = UserUpdate(is_active=True)
             return self.update(user_id, update_data)
             
         except Exception as e:
@@ -153,8 +153,8 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Deactivating user: {user_id}")
             
-            # Create update data with proper type
-            update_data = UserUpdate(user_id=user_id, is_active=False)
+            # Create update data with proper type - now is_active is available
+            update_data = UserUpdate(is_active=False)
             return self.update(user_id, update_data)
             
         except Exception as e:
@@ -194,20 +194,20 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         # Add any additional user-specific validation here
         self._validate_password_strength(create_data.password)
 
-    def _validate_before_update(self, entity_id: int, update_data: UserResponse) -> None:
+    def _validate_before_update(self, entity_id: int, update_data: UserUpdate) -> None:
         """Custom validation before user update."""
         # Check email uniqueness (excluding current user)
-        if hasattr(update_data, 'email') and update_data.email:
+        if update_data.email:
             if self.email_exists(update_data.email, exclude_id=entity_id):
                 raise UserAlreadyExistsError(f"User with email {update_data.email} already exists")
         
         # Check username uniqueness (excluding current user)
-        if hasattr(update_data, 'username') and update_data.username:
+        if update_data.username:
             if self.username_exists(update_data.username, exclude_id=entity_id):
                 raise UserAlreadyExistsError(f"User with username {update_data.username} already exists")
         
         # Validate password if being updated
-        if hasattr(update_data, 'password') and update_data.password:
+        if update_data.password:
             self._validate_password_strength(update_data.password)
 
     def _validate_before_delete(self, entity_id: int) -> None:
