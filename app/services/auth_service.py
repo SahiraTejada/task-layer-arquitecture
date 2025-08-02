@@ -16,6 +16,7 @@ from app.utils.exceptions import (
     UserInactiveError,
     AppValidationError,
     ServiceError,
+    UserNotFoundError,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class AuthService:
     to UserService, maintaining separation of concerns.
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> None:
         self.db = db
         self.user_service = UserService(db)
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -78,29 +79,32 @@ class AuthService:
         try:
             self.logger.info(f"Authenticating user with email: {login_data.email}")
             
-
-            email = login_data.email
-            password = login_data.password
-            user = self.user_service.repository.get_by_email(email)
-            if not user:
+            # Use UserService method instead of accessing repository directly
+            try:
+                user_response = self.user_service.get_by_email(login_data.email)
+                # Get the actual user model from repository for password verification
+                user = self.user_service.user_repository.get_by_email(login_data.email)
+                
+                if not user:
+                    raise InvalidCredentialsError("Invalid email or password")
+                    
+            except UserNotFoundError:
+                # Convert UserNotFoundError to InvalidCredentialsError for security
+                self.logger.warning(f"Authentication failed - user not found: {login_data.email}")
                 raise InvalidCredentialsError("Invalid email or password")
             
-            if not verify_password(password, user.hashed_password):
+            # Verify password - user is guaranteed to be not None here
+            if not verify_password(login_data.password, user.hashed_password):
                 self.logger.warning(f"Authentication failed - invalid password: {login_data.email}")
                 raise InvalidCredentialsError("Invalid email or password")
             
-            if not user.is_active:
-                self.logger.warning(f"Authentication failed - inactive user: {login_data.email}")
-                raise UserInactiveError("User account is inactive")
-            
-  
             # Check if user is active
             if not user.is_active:
                 self.logger.warning(f"Authentication failed - inactive user: {login_data.email}")
                 raise UserInactiveError("User account is inactive")
             
             self.logger.info(f"User authenticated successfully: {login_data.email}")
-            return UserResponse.model_validate(user)
+            return user_response
             
         except (InvalidCredentialsError, UserInactiveError):
             raise
@@ -128,16 +132,18 @@ class AuthService:
             # Validate password change data
             self._validate_password_change(password_data)
             
-            # Get user using UserService (handles NotFoundError automatically)
-            user = self.user_service.repository.get(password_data.user_id)
-            
+            # Get user using UserService repository (safer than direct access)
+            user = self.user_service.user_repository.get(password_data.user_id)
+            if not user:
+                raise UserNotFoundError(f"User with ID {password_data.user_id} not found")
             
             # Verify current password
             if not verify_password(password_data.old_password, user.hashed_password):
                 self.logger.warning(f"Password change failed - incorrect old password for user {password_data.user_id}")
                 raise InvalidCredentialsError("Current password is incorrect")
             
-            update_data = UserUpdate(password=password_data.new_password,user_id=password_data.user_id)
+            # Create update data - only include the password field
+            update_data = UserUpdate(password=password_data.new_password)
             
             # UserService.update() handles password hashing, validation, and error handling
             self.user_service.update(password_data.user_id, update_data)
@@ -147,96 +153,95 @@ class AuthService:
                 message="Password changed successfully"
             )
             
-        except (InvalidCredentialsError, AppValidationError):
+        except (InvalidCredentialsError, AppValidationError, UserNotFoundError):
             raise
         except Exception as e:
             self.logger.error(f"Error changing password for user {password_data.user_id}: {str(e)}")
             raise ServiceError(f"Failed to change password: {str(e)}")
 
-    # def reset_password(self, email: str, new_password: str) -> SuccessResponseSchema:
-    #     """
-    #     Reset user password (admin function or after email verification).
+    def reset_password(self, email: str, new_password: str) -> SuccessResponseSchema:
+        """
+        Reset user password (admin function or after email verification).
         
-    #     Args:
-    #         email: User email address
-    #         new_password: New password to set
+        Args:
+            email: User email address
+            new_password: New password to set
             
-    #     Returns:
-    #         SuccessResponseSchema: Success confirmation
-    #     """
-    #     try:
-    #         self.logger.info(f"Resetting password for user with email: {email}")
+        Returns:
+            SuccessResponseSchema: Success confirmation
+        """
+        try:
+            self.logger.info(f"Resetting password for user with email: {email}")
             
-    #         # Get user by email
-    #         user_response = self.user_service.get_by_email(email)
+            # Get user by email
+            user_response = self.user_service.get_by_email(email)
             
-    #         # Update password using UserService
-    #         from app.schemas.user import UserUpdate
-    #         update_data = UserUpdate(password=new_password)
+            # Update password using UserService
+            update_data = UserUpdate(password=new_password)
             
-    #         self.user_service.update(user_response.id, update_data)
+            self.user_service.update(user_response.id, update_data)
             
-    #         self.logger.info(f"Password reset successfully for user: {email}")
-    #         return SuccessResponseSchema(
-    #             message="Password reset successfully"
-    #         )
+            self.logger.info(f"Password reset successfully for user: {email}")
+            return SuccessResponseSchema(
+                message="Password reset successfully"
+            )
             
-    #     except Exception as e:
-    #         self.logger.error(f"Error resetting password for email {email}: {str(e)}")
-    #         raise ServiceError(f"Failed to reset password: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"Error resetting password for email {email}: {str(e)}")
+            raise ServiceError(f"Failed to reset password: {str(e)}")
 
-    # def deactivate_user_account(self, user_id: int) -> UserResponse:
-    #     """
-    #     Deactivate user account (admin function).
+    def deactivate_user_account(self, user_id: int) -> UserResponse:
+        """
+        Deactivate user account (admin function).
         
-    #     Args:
-    #         user_id: ID of user to deactivate
+        Args:
+            user_id: ID of user to deactivate
             
-    #     Returns:
-    #         UserResponse: Updated user data
-    #     """
-    #     try:
-    #         self.logger.info(f"Deactivating user account: {user_id}")
+        Returns:
+            UserResponse: Updated user data
+        """
+        try:
+            self.logger.info(f"Deactivating user account: {user_id}")
             
-    #         # Use UserService deactivate method
-    #         user_response = self.user_service.deactivate_user(user_id)
+            # Use UserService deactivate method
+            user_response = self.user_service.deactivate_user(user_id)
             
-    #         self.logger.info(f"User account deactivated successfully: {user_id}")
-    #         return user_response
+            self.logger.info(f"User account deactivated successfully: {user_id}")
+            return user_response
             
-    #     except Exception as e:
-    #         self.logger.error(f"Error deactivating user {user_id}: {str(e)}")
-    #         raise
+        except Exception as e:
+            self.logger.error(f"Error deactivating user {user_id}: {str(e)}")
+            raise
 
-    # def activate_user_account(self, user_id: int) -> UserResponse:
-    #     """
-    #     Activate user account (admin function).
+    def activate_user_account(self, user_id: int) -> UserResponse:
+        """
+        Activate user account (admin function).
         
-    #     Args:
-    #         user_id: ID of user to activate
+        Args:
+            user_id: ID of user to activate
             
-    #     Returns:
-    #         UserResponse: Updated user data
-    #     """
-    #     try:
-    #         self.logger.info(f"Activating user account: {user_id}")
+        Returns:
+            UserResponse: Updated user data
+        """
+        try:
+            self.logger.info(f"Activating user account: {user_id}")
             
-    #         # Use UserService activate method
-    #         user_response = self.user_service.activate_user(user_id)
+            # Use UserService activate method
+            user_response = self.user_service.activate_user(user_id)
             
-    #         self.logger.info(f"User account activated successfully: {user_id}")
-    #         return user_response
+            self.logger.info(f"User account activated successfully: {user_id}")
+            return user_response
             
-    #     except Exception as e:
-    #         self.logger.error(f"Error activating user {user_id}: {str(e)}")
-    #         raise
+        except Exception as e:
+            self.logger.error(f"Error activating user {user_id}: {str(e)}")
+            raise
 
     # Convenience methods for profile management
     def get_user_profile(self, user_id: int) -> UserResponse:
         """Get user profile (convenience method)."""
         return self.user_service.get_by_id(user_id)
 
-    def update_user_profile(self, user_id: int, update_data) -> UserResponse:
+    def update_user_profile(self, user_id: int, update_data: UserUpdate) -> UserResponse:
         """Update user profile (convenience method)."""
         return self.user_service.update(user_id, update_data)
 

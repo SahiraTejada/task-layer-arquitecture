@@ -87,6 +87,10 @@ class UserFilters(BaseModel):
     email: Optional[str] = Field(None, description="Filter by email")
     created_after: Optional[datetime] = Field(None, description="Filter by creation date after")
     created_before: Optional[datetime] = Field(None, description="Filter by creation date before")
+    # Add the missing fields that the endpoints are trying to use
+    email_contains: Optional[str] = Field(None, description="Filter by email containing text")
+    username_contains: Optional[str] = Field(None, description="Filter by username containing text")
+    full_name_contains: Optional[str] = Field(None, description="Filter by full name containing text")
 
 class UserBulkUpdate(BaseModel):
     """Schema for bulk user updates."""
@@ -102,3 +106,16 @@ class UserSearch(BaseModel):
     query: str = Field(min_length=1, description="Search query")
     skip: int = Field(0, ge=0, description="Number of records to skip")
     limit: int = Field(10, ge=1, le=100, description="Maximum number of records to return")
+
+class UserCountResponse(BaseModel):
+    """Response schema for user count."""
+    total_users: int = Field(description="Total number of users")
+
+class UserExistsResponse(BaseModel):
+    """Response schema for user existence check."""
+    exists: bool = Field(description="Whether the user exists")
+
+class BulkUpdateResponse(BaseModel):
+    """Response schema for bulk update operations."""
+    message: str = Field(description="Success message")
+    updated_count: int = Field(description="Number of users updated")
