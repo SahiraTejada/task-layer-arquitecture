@@ -1,6 +1,7 @@
+from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from .settings import settings
 
 # Create SQLite engine
@@ -21,7 +22,7 @@ Base = declarative_base()
 
 
 # Dependency function to provide a database session to path operations (for example, in FastAPI)
-def get_db():
+def get_db()  -> Generator[Session, None, None]:
     db = SessionLocal()  # Create a new SessionLocal instance (database session)
     try:
         yield db        # Yield the session, allowing usage in a 'with' or dependency injection

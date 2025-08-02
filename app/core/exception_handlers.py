@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 import logging
-from typing import Union, Optional
+from typing import Optional
 
 from app.utils.exceptions import (
     AppValidationError,
@@ -42,11 +42,13 @@ def setup_exception_handlers(app: FastAPI) -> None:
         """Handle Pydantic validation errors."""
         logger.warning(f"Validation error: {exc.errors()}")
         
-        # Extract field name from the first error
-        field_name: Optional[Union[str, int]] = None
+        # Extract field name from the first error and ensure it's a string
+        field_name: Optional[str] = None
         if exc.errors():
             field_path = exc.errors()[0].get('loc', [])
-            field_name = field_path[-1] if field_path else None
+            if field_path:
+                # Convert to string since ErrorResponseSchema expects Optional[str]
+                field_name = str(field_path[-1])
         
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
