@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 import logging
-
 from app.core.security import verify_password
 from app.services.user_service import UserService
 from app.schemas.common import SuccessResponseSchema
@@ -94,6 +93,11 @@ class AuthService:
                 raise InvalidCredentialsError("Invalid email or password")
             
             # Verify password - user is guaranteed to be not None here
+            # Check if user has a hashed password
+            if not user.hashed_password:
+                self.logger.warning(f"Authentication failed - no password set: {login_data.email}")
+                raise InvalidCredentialsError("Invalid email or password")
+                
             if not verify_password(login_data.password, user.hashed_password):
                 self.logger.warning(f"Authentication failed - invalid password: {login_data.email}")
                 raise InvalidCredentialsError("Invalid email or password")
@@ -138,6 +142,10 @@ class AuthService:
                 raise UserNotFoundError(f"User with ID {password_data.user_id} not found")
             
             # Verify current password
+            if not user.hashed_password:
+                self.logger.warning(f"Password change failed - no password set for user {password_data.user_id}")
+                raise InvalidCredentialsError("Current password is incorrect")
+                
             if not verify_password(password_data.old_password, user.hashed_password):
                 self.logger.warning(f"Password change failed - incorrect old password for user {password_data.user_id}")
                 raise InvalidCredentialsError("Current password is incorrect")
