@@ -20,7 +20,6 @@ from app.utils.exceptions import (
     AppValidationError,
     ServiceError,
 )
-from app.utils.response_docs import ResponseDocs
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
 
