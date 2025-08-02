@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
@@ -35,9 +36,9 @@ app = FastAPI()
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
-async def root():
+async def root() -> Dict[str, Any]:
     return {"message": "Task Manager API", "version": settings.VERSION}
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, str]:
     return {"status": "healthy"}

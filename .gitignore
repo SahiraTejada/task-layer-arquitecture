@@ -17,6 +17,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+app/folder.py
+app/structure.txt
 # Archivos de logs
 *.log
 
