@@ -82,15 +82,17 @@ class UserChangePassword(BaseModel):
         return v    
 
 class UserFilters(BaseModel):
-    is_active: Optional[bool] = Field(None, description="Filter by active status")
-    username: Optional[str] = Field(None, description="Filter by username")
-    email: Optional[str] = Field(None, description="Filter by email")
-    created_after: Optional[datetime] = Field(None, description="Filter by creation date after")
-    created_before: Optional[datetime] = Field(None, description="Filter by creation date before")
+    """Schema for filtering users - all fields are optional."""
+    is_active: Optional[bool] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+    created_after: Optional[datetime] = None
+    created_before: Optional[datetime] = None
     # Add the missing fields that the endpoints are trying to use
-    email_contains: Optional[str] = Field(None, description="Filter by email containing text")
-    username_contains: Optional[str] = Field(None, description="Filter by username containing text")
-    full_name_contains: Optional[str] = Field(None, description="Filter by full name containing text")
+    email_contains: Optional[str] = None
+    username_contains: Optional[str] = None
+    full_name_contains: Optional[str] = None
+
 
 class UserBulkUpdate(BaseModel):
     """Schema for bulk user updates."""
