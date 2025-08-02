@@ -28,12 +28,12 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    # Made user_id optional since it's not always needed (it's provided as parameter)
-    user_id: Optional[int] = Field(None, description="User ID")
-    email: Optional[EmailStr] = Field(None, description="User Email")
-    username: Optional[str] = Field(None, max_length=50, min_length=3)
-    password: Optional[str] = Field(None, min_length=8, description="Password in plain text, min 8 chars")
-    is_active: Optional[bool] = Field(None, description="Is user active")
+    """Schema for updating user data - all fields are optional."""
+    user_id: Optional[int] = None
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
     
     @field_validator('password')
     @classmethod
@@ -48,6 +48,7 @@ class UserUpdate(BaseModel):
         if v is not None and not v.isalnum() and '_' not in v:
             raise ValueError('Username must contain only alphanumeric characters and underscores')
         return v.lower() if v else v
+
 
 class UserResponse(BaseModel):
     id: int = Field(description="User ID")

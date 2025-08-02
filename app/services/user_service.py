@@ -140,7 +140,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Activating user: {user_id}")
             
-            # Create update data with proper type - now is_active is available
+            # Create update data with only the field we want to change
             update_data = UserUpdate(is_active=True)
             return self.update(user_id, update_data)
             
@@ -153,7 +153,7 @@ class UserService(BaseService[User, UserCreate, UserUpdate, UserResponse]):
         try:
             self.logger.info(f"Deactivating user: {user_id}")
             
-            # Create update data with proper type - now is_active is available
+            # Create update data with only the field we want to change
             update_data = UserUpdate(is_active=False)
             return self.update(user_id, update_data)
             
